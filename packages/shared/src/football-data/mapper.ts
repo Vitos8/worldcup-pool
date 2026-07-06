@@ -43,6 +43,7 @@ const STATUS_MAP: Record<RawMatch["status"], MatchStatus> = {
   SUSPENDED: "scheduled",
   IN_PLAY: "live",
   PAUSED: "live",
+  LIVE: "live",
   FINISHED: "finished",
   AWARDED: "finished",
   CANCELLED: "finished",

@@ -30,6 +30,9 @@ export const rawMatchStatusSchema = z.enum([
   "TIMED",
   "IN_PLAY",
   "PAUSED",
+  // Undocumented but observed in real payloads (WC 2026, Jul 2026) —
+  // the API emits LIVE alongside IN_PLAY/PAUSED for in-progress matches.
+  "LIVE",
   "FINISHED",
   "SUSPENDED",
   "POSTPONED",
