@@ -1,7 +1,6 @@
 import { Geist_Mono, Barlow, Barlow_Condensed } from "next/font/google"
 
 import "@workspace/ui/globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils";
 
 const barlow = Barlow({
@@ -29,13 +28,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      suppressHydrationWarning
       className={cn("antialiased", fontMono.variable, "font-sans", barlow.variable, barlowCondensed.variable)}
     >
       <body>
-        <ThemeProvider>
-          <div className="flex min-h-svh flex-col">{children}</div>
-        </ThemeProvider>
+        <div className="flex min-h-svh flex-col">{children}</div>
       </body>
     </html>
   )

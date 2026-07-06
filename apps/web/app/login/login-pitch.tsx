@@ -103,12 +103,7 @@ export function LoginPitch() {
         <div className="absolute top-52 left-0 h-80 w-[3px] bg-white/25" />
 
         <div className="relative z-10 px-7 pt-14">
-          <div className="flex items-center gap-3">
-            <Ball className="h-8 w-8" />
-            <span className="font-display text-xl font-bold tracking-[.16em] text-white uppercase">
-              Kickoff
-            </span>
-          </div>
+          <PoolLogo/>
           <div className="mt-12">
             <div className="font-display text-xs font-semibold tracking-[.22em] text-white/70 uppercase">
               World Cup 2026 Pool
