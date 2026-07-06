@@ -95,8 +95,20 @@ export async function syncWorldCupMatches() {
   return { competitionId, matchCount: mapped.length }
 }
 
-/** Sync only if local data is missing or plausibly stale — safe to call on every page load. */
+/**
+ * Sync only if local data is missing or plausibly stale — safe to call on
+ * every page load. A failing football-data.org call must never take the page
+ * down: we log and serve whatever is already in our own database.
+ */
 export async function syncIfStale() {
+  try {
+    await syncIfStaleUnsafe()
+  } catch (error) {
+    console.error("football-data.org sync failed — serving existing data", error)
+  }
+}
+
+async function syncIfStaleUnsafe() {
   const [competitionRow] = await db
     .select()
     .from(competition)
