@@ -115,7 +115,10 @@ export async function syncIfStale() {
     matches.length === 0 ||
     matches.some((m) => {
       if (m.status === "finished") return false
-      const staleAfter = m.status === "live" ? LIVE_STALE_MS : UPCOMING_STALE_MS
+      // A "scheduled" match whose kickoff has passed is live in reality —
+      // poll at the live cadence so the status flips promptly.
+      const kickedOff = m.status === "live" || m.kickoff.getTime() <= now
+      const staleAfter = kickedOff ? LIVE_STALE_MS : UPCOMING_STALE_MS
       return !m.lastPolledAt || now - m.lastPolledAt.getTime() > staleAfter
     })
 

@@ -46,8 +46,14 @@ function toDisplayMatch(fixture: BracketFixture): Match {
   }
 }
 
+// TEMP_ALLOW_LIVE_EDITS: mirrors the flag in apps/web/.../matches/actions.ts —
+// remove both together to restore the kickoff lock.
+const TEMP_ALLOW_LIVE_EDITS = true
+
 function isPredictable(fixture: BracketFixture): fixture is BracketFixture & { home: Team; away: Team } {
-  return fixture.status === "scheduled" && fixture.home !== null && fixture.away !== null
+  const openForPicks =
+    fixture.status === "scheduled" || (TEMP_ALLOW_LIVE_EDITS && fixture.status === "live")
+  return openForPicks && fixture.home !== null && fixture.away !== null
 }
 
 export function MatchesPage({
@@ -76,13 +82,26 @@ export function MatchesPage({
     if (!fixture) return null
 
     if (fixture.status !== "scheduled" && fixture.home && fixture.away) {
-      return (
+      const resultNode = (
         <MatchNode
           match={toDisplayMatch(fixture)}
           pickLabel={readOnly ? (playerName ? `${playerName}'s pick` : "Their pick") : "Your pick"}
           emptyPickLabel={readOnly ? "No prediction for this match" : "You didn't add a prediction here"}
         />
       )
+      // TEMP_ALLOW_LIVE_EDITS: live cards open the predict dialog too.
+      if (!readOnly && isPredictable(fixture)) {
+        return (
+          <button
+            type="button"
+            onClick={() => setPredictingId(fixture.id)}
+            className="h-full w-full text-left"
+          >
+            {resultNode}
+          </button>
+        )
+      }
+      return resultNode
     }
 
     if (isPredictable(fixture) && readOnly) {

@@ -29,7 +29,14 @@ export async function savePrediction(input: unknown): Promise<SavePredictionResu
 
   // The lock lives here, not in the UI: no edits at or after kickoff,
   // regardless of what the client claims.
-  if (matchRow.status !== "scheduled" || matchRow.kickoff.getTime() <= Date.now()) {
+  // TEMP_ALLOW_LIVE_EDITS: lock relaxed to finished-only for testing during a
+  // live match — revert to the strict check below and remove the UI half in
+  // packages/ui/src/components/pool/matches-page.tsx (same flag name).
+  const TEMP_ALLOW_LIVE_EDITS = true
+  const locked = TEMP_ALLOW_LIVE_EDITS
+    ? matchRow.status === "finished"
+    : matchRow.status !== "scheduled" || matchRow.kickoff.getTime() <= Date.now()
+  if (locked) {
     return { error: "Predictions are locked for this match." }
   }
   if (!matchRow.homeTeamId || !matchRow.awayTeamId) {
