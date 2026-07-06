@@ -19,8 +19,12 @@ are awarded after each match. World Cup first, extensible to Champions League.
 - packages/shared — Zod schemas, domain types, scoring logic
 
 ## MVP spec
-- Auth gate on entry: Google sign-in + custom username (create-account card
-  with "I already have an account" link)
+- Auth gate on entry: single "Login with Google" button on `/login` covers
+  both sign-up and sign-in — Better Auth creates the user on first login
+  transparently, no separate create-account flow needed
+- First-time users (no `username` set yet) get a non-dismissable modal on
+  landing, prompting them to pick a username before using the app
+- Unauthenticated visitors are redirected to `/login` (middleware)
 - Two-tab dashboard: /matches (bracket + predictions), /scores (leaderboard)
 - Routes: / (rules + scoring), /matches, /scores, /matches/:userId (read-only)
 - Predictions lock server-side at kickoff; LIVE badge shown, no edits after
@@ -40,7 +44,7 @@ change prediction points — see below.
   resolved from the penalty shootout (`homePens` / `awayPens`). The penalty
   winner advances in the bracket (`nextMatchId` / `nextSlot`) but does not
   affect prediction points — a drawn regular-time score still only scores
-  the "correct outcome, draw" tier (1pt) regardless of who wins on pens.
+  the "correct outcome" tier (3pts) regardless of who wins on pens.
 
 ## Live scores
 - No websockets / real-time push for MVP.

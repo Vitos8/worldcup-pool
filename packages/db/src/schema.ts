@@ -102,6 +102,7 @@ export const team = pgTable("team", {
   externalId: text("external_id").notNull(),   // provider id, for the mapper
   name: text("name").notNull(),
   shortName: text("short_name"),
+  tla: text("tla"),                            // "NED", "ARG" — 3-letter code shown in the UI
   countryCode: text("country_code"),           // "CA", "MA" — drives the flag
   crestUrl: text("crest_url"),
 }, (t) => [

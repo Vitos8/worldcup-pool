@@ -1,10 +1,20 @@
-import { Geist, Geist_Mono, Figtree } from "next/font/google"
+import { Geist_Mono, Barlow, Barlow_Condensed } from "next/font/google"
 
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils";
 
-const figtree = Figtree({subsets:['latin'],variable:'--font-sans'})
+const barlow = Barlow({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+})
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-barlow-condensed",
+})
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -20,10 +30,12 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", figtree.variable)}
+      className={cn("antialiased", fontMono.variable, "font-sans", barlow.variable, barlowCondensed.variable)}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <div className="flex min-h-svh flex-col">{children}</div>
+        </ThemeProvider>
       </body>
     </html>
   )
