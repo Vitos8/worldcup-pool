@@ -1,10 +1,9 @@
 "use server"
 
 import { z } from "zod"
-import { headers } from "next/headers"
 import { eq } from "drizzle-orm"
 import { db, match, prediction } from "@workspace/db"
-import { auth } from "@/lib/auth"
+import { getSession } from "@/lib/session"
 
 const savePredictionInput = z.object({
   matchId: z.string().min(1),
@@ -17,7 +16,7 @@ export interface SavePredictionResult {
 }
 
 export async function savePrediction(input: unknown): Promise<SavePredictionResult> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session) return { error: "You need to be signed in." }
 
   const parsed = savePredictionInput.safeParse(input)

@@ -2,7 +2,7 @@ import { and, eq, isNotNull, sql } from "drizzle-orm"
 import { db, user, prediction } from "@workspace/db"
 import { deriveTone } from "@workspace/ui/components/pool/data"
 import type { Standing } from "@workspace/ui/components/pool/leaderboard-row"
-import { syncIfStale } from "./sync-matches"
+import { ensureFreshMatches } from "./sync-matches"
 import { settleFinishedPredictions } from "./settle-predictions"
 
 function getInitials(name: string) {
@@ -15,7 +15,7 @@ function getInitials(name: string) {
 }
 
 export async function getLeaderboard(currentUserId: string): Promise<Standing[]> {
-  await syncIfStale()
+  await ensureFreshMatches()
   await settleFinishedPredictions()
 
   // Everyone who signed up is in the pool — users without settled predictions

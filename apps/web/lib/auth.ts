@@ -15,6 +15,11 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     },
   },
+  session: {
+    // Short-lived signed cookie copy of the session — skips the DB lookup on
+    // most requests instead of hitting Neon for every getSession call.
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
+  },
   databaseHooks: {
     user: {
       create: {

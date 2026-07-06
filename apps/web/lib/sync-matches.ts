@@ -1,4 +1,5 @@
-import { and, eq } from "drizzle-orm"
+import { after } from "next/server"
+import { and, eq, sql } from "drizzle-orm"
 import { db, competition, team, match } from "@workspace/db"
 import { rawMatchesResponseSchema, mapMatch, type MappedTeam, type MatchStage } from "@workspace/shared"
 import { footballDataFetch } from "./football-data-client"
@@ -41,32 +42,36 @@ export async function syncWorldCupMatches() {
     if (m.awayTeam) teamsByExternalId.set(m.awayTeam.externalId, m.awayTeam)
   }
 
-  const teamIdByExternalId = new Map<string, string>()
-  for (const t of teamsByExternalId.values()) {
-    const [row] = await db
-      .insert(team)
-      .values({
-        competitionId,
-        externalId: t.externalId,
-        name: t.name,
-        shortName: t.shortName,
-        tla: t.tla,
-        crestUrl: t.crestUrl,
-      })
-      .onConflictDoUpdate({
-        target: [team.competitionId, team.externalId],
-        set: { name: t.name, shortName: t.shortName, tla: t.tla, crestUrl: t.crestUrl },
-      })
-      .returning()
-    teamIdByExternalId.set(t.externalId, row!.id)
-  }
+  // Single bulk upsert per table — one-row-at-a-time round trips to Neon were
+  // the main cost of a sync (~45 sequential queries before).
+  const teamRows = [...teamsByExternalId.values()].map((t) => ({
+    competitionId,
+    externalId: t.externalId,
+    name: t.name,
+    shortName: t.shortName,
+    tla: t.tla,
+    crestUrl: t.crestUrl,
+  }))
+  const insertedTeams = await db
+    .insert(team)
+    .values(teamRows)
+    .onConflictDoUpdate({
+      target: [team.competitionId, team.externalId],
+      set: {
+        name: sql`excluded.name`,
+        shortName: sql`excluded.short_name`,
+        tla: sql`excluded.tla`,
+        crestUrl: sql`excluded.crest_url`,
+      },
+    })
+    .returning({ id: team.id, externalId: team.externalId })
+  const teamIdByExternalId = new Map(insertedTeams.map((t) => [t.externalId, t.id]))
 
-  for (const m of mapped) {
-    const homeTeamId = m.homeTeam ? teamIdByExternalId.get(m.homeTeam.externalId) : null
-    const awayTeamId = m.awayTeam ? teamIdByExternalId.get(m.awayTeam.externalId) : null
-    const winnerTeamId = m.winnerSide === "home" ? homeTeamId : m.winnerSide === "away" ? awayTeamId : null
-
-    const values = {
+  const lastPolledAt = new Date()
+  const matchRows = mapped.map((m) => {
+    const homeTeamId = m.homeTeam ? (teamIdByExternalId.get(m.homeTeam.externalId) ?? null) : null
+    const awayTeamId = m.awayTeam ? (teamIdByExternalId.get(m.awayTeam.externalId) ?? null) : null
+    return {
       competitionId,
       externalId: m.externalId,
       stage: m.stage,
@@ -79,20 +84,51 @@ export async function syncWorldCupMatches() {
       awayScore: m.awayScore,
       homePens: m.homePens,
       awayPens: m.awayPens,
-      winnerTeamId,
-      lastPolledAt: new Date(),
+      winnerTeamId: m.winnerSide === "home" ? homeTeamId : m.winnerSide === "away" ? awayTeamId : null,
+      lastPolledAt,
     }
-
-    await db
-      .insert(match)
-      .values(values)
-      .onConflictDoUpdate({
-        target: [match.competitionId, match.externalId],
-        set: values,
-      })
-  }
+  })
+  await db
+    .insert(match)
+    .values(matchRows)
+    .onConflictDoUpdate({
+      target: [match.competitionId, match.externalId],
+      set: {
+        stage: sql`excluded.stage`,
+        groupName: sql`excluded.group_name`,
+        homeTeamId: sql`excluded.home_team_id`,
+        awayTeamId: sql`excluded.away_team_id`,
+        kickoff: sql`excluded.kickoff`,
+        status: sql`excluded.status`,
+        homeScore: sql`excluded.home_score`,
+        awayScore: sql`excluded.away_score`,
+        homePens: sql`excluded.home_pens`,
+        awayPens: sql`excluded.away_pens`,
+        winnerTeamId: sql`excluded.winner_team_id`,
+        lastPolledAt: sql`excluded.last_polled_at`,
+      },
+    })
 
   return { competitionId, matchCount: mapped.length }
+}
+
+/**
+ * Fast path for page loads: always render straight from our own database and
+ * refresh from football-data.org *after* the response has been sent
+ * (Next's `after()`), so users never wait on the external API. Only a
+ * completely empty database blocks, since there'd be nothing to render.
+ */
+export async function ensureFreshMatches() {
+  const [anyMatch] = await db.select({ id: match.id }).from(match).limit(1)
+
+  if (!anyMatch) {
+    await syncIfStale()
+    return
+  }
+
+  after(async () => {
+    await syncIfStale()
+  })
 }
 
 /**

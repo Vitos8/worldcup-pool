@@ -1,9 +1,8 @@
-import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth"
 import { UsernameModal } from "@/components/username-modal"
 import { PitchBackdrop } from "@workspace/ui/components/pool/pitch-backdrop"
 import { DashboardChrome } from "./dashboard-chrome"
+import { getSession } from "@/lib/session"
 
 function getInitials(name: string) {
   return name
@@ -15,7 +14,7 @@ function getInitials(name: string) {
 }
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
 
   if (!session) {
     redirect("/login")

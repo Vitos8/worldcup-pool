@@ -1,13 +1,12 @@
-import { headers } from "next/headers"
 import { notFound, redirect } from "next/navigation"
 import { eq } from "drizzle-orm"
 import { db, user } from "@workspace/db"
 import { MatchesPage } from "@workspace/ui/components/pool/matches-page"
-import { auth } from "@/lib/auth"
 import { getBracketFixtures } from "@/lib/get-bracket"
+import { getSession } from "@/lib/session"
 
 export default async function Page({ params }: { params: Promise<{ userId: string }> }) {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session) redirect("/login")
 
   const { userId } = await params

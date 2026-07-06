@@ -1,11 +1,10 @@
-import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth"
 import { getBracketFixtures } from "@/lib/get-bracket"
 import { MatchesClient } from "./matches-client"
+import { getSession } from "@/lib/session"
 
 export default async function Page() {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session) redirect("/login")
 
   const fixtures = await getBracketFixtures(session.user.id)
