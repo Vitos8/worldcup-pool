@@ -9,7 +9,9 @@ import { db, user } from "@workspace/db"
  */
 export const PLAYER_AVATARS: ReadonlyArray<{ player: string; image: string }> = [
   { player: "Lionel Messi", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Lionel_Messi_NE_Revolution_Inter_Miami_7.9.25-055.jpg/330px-Lionel_Messi_NE_Revolution_Inter_Miami_7.9.25-055.jpg" },
-  { player: "Cristiano Ronaldo", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Cristiano_Ronaldo_2275_%28cropped%29.jpg/330px-Cristiano_Ronaldo_2275_%28cropped%29.jpg" },
+  // Cristiano Ronaldo is deliberately absent: his slot is a hand-assigned
+  // animated GIF avatar (see git history / user maryan.dzubich@gmail.com),
+  // so the pool must never hand out a second, static Ronaldo.
   { player: "Kylian Mbappé", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Kylian_Mbappe_France_v_Senegal_16_June_2026-391_%28cropped%29.jpg/330px-Kylian_Mbappe_France_v_Senegal_16_June_2026-391_%28cropped%29.jpg" },
   { player: "Erling Haaland", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Erling_Haaland_Morocco_v_Norway_7_June_2026-51.jpg/330px-Erling_Haaland_Morocco_v_Norway_7_June_2026-51.jpg" },
   { player: "Neymar", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Neymar_Junior_Brazil_V_Morocco_13_June_2026-40.jpg/330px-Neymar_Junior_Brazil_V_Morocco_13_June_2026-40.jpg" },
@@ -28,6 +30,11 @@ export const PLAYER_AVATARS: ReadonlyArray<{ player: string; image: string }> = 
   { player: "Federico Valverde", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Federico_Valverde_2021_%28cropped%29.jpg/330px-Federico_Valverde_2021_%28cropped%29.jpg" },
   { player: "Rodri", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/RODRI_-_SWE_vs_ESP_-_UEFA_EURO_2020_QUALIFIERS_-_2019.10.15_%28cropped%29.jpg/330px-RODRI_-_SWE_vs_ESP_-_UEFA_EURO_2020_QUALIFIERS_-_2019.10.15_%28cropped%29.jpg" },
   { player: "Florian Wirtz", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Team_Germany_players%2C_Ecuador_v_Germany_at_2026_Fifa_World_Cup_by_YantsImages_01_Florian_Wirtz.jpg/330px-Team_Germany_players%2C_Ecuador_v_Germany_at_2026_Fifa_World_Cup_by_YantsImages_01_Florian_Wirtz.jpg" },
+  { player: "Bukayo Saka", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Bukayo_Saka_England_v_Ghana_23_June_2026-057_%28cropped%29.jpg/330px-Bukayo_Saka_England_v_Ghana_23_June_2026-057_%28cropped%29.jpg" },
+  { player: "Cole Palmer", image: "https://upload.wikimedia.org/wikipedia/commons/f/fb/Cole_Palmer_2025_FIFA_Club_World_Cup_Final.jpg" },
+  { player: "Julián Álvarez", image: "https://upload.wikimedia.org/wikipedia/commons/0/03/Argentina_national_football_team_-_2_-_2022_%28Juli%C3%A1n_%C3%81lvarez%29.jpg" },
+  { player: "Virgil van Dijk", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/20160604_AUT_NED_8876_%28cropped%29.jpg/330px-20160604_AUT_NED_8876_%28cropped%29.jpg" },
+  { player: "Achraf Hakimi", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Achraf_Hakimi_Morocco_v_Norway_7_June_2026-16.jpg/330px-Achraf_Hakimi_Morocco_v_Norway_7_June_2026-16.jpg" },
 ]
 
 /** Random avatar that no user has yet; random repeat once all 20 are taken. */
