@@ -20,6 +20,10 @@ const TRACKED_STAGES: MatchStage[] = ["r16", "qf", "sf", "final"]
 // fresh data quickly; matches that haven't kicked off yet barely change.
 const LIVE_STALE_MS = 60_000
 const UPCOMING_STALE_MS = 6 * 60 * 60_000
+// Matches with TBD slots are waiting on the previous round's results — the
+// API fills their teams within minutes of a feeder match finishing, so the
+// lazy 6h window would leave the bracket showing "To be decided" for hours.
+const TBD_STALE_MS = 15 * 60_000
 
 export async function syncWorldCupMatches() {
   const raw = await footballDataFetch(`/competitions/${COMPETITION_CODE}/matches`)
@@ -166,7 +170,8 @@ async function syncIfStaleUnsafe() {
       // A "scheduled" match whose kickoff has passed is live in reality —
       // poll at the live cadence so the status flips promptly.
       const kickedOff = m.status === "live" || m.kickoff.getTime() <= now
-      const staleAfter = kickedOff ? LIVE_STALE_MS : UPCOMING_STALE_MS
+      const missingTeams = !m.homeTeamId || !m.awayTeamId
+      const staleAfter = kickedOff ? LIVE_STALE_MS : missingTeams ? TBD_STALE_MS : UPCOMING_STALE_MS
       return !m.lastPolledAt || now - m.lastPolledAt.getTime() > staleAfter
     })
 
