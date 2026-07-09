@@ -145,6 +145,9 @@ export const prediction = pgTable("prediction", {
   matchId: text("match_id").notNull().references(() => match.id, { onDelete: "cascade" }),
   homeScore: integer("home_score").notNull(),
   awayScore: integer("away_score").notNull(),
+  // required (by the app layer) when the predicted score is a draw:
+  // who advances on penalties — worth a +1 bonus when correct
+  penaltyWinnerTeamId: text("penalty_winner_team_id").references(() => team.id),
   points: integer("points"),                   // null until the match is settled
   settledAt: timestamp("settled_at", { withTimezone: true }),
   createdAt: createdAt(),
@@ -154,6 +157,19 @@ export const prediction = pgTable("prediction", {
   uniqueIndex("prediction_user_match_idx").on(t.userId, t.matchId),
   index("prediction_match_idx").on(t.matchId),
   index("prediction_user_idx").on(t.userId),
+]);
+
+// One "who wins the whole cup" pick per user per competition. The entry
+// deadline is enforced in the app layer, not here.
+export const championPick = pgTable("champion_pick", {
+  id: id(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  competitionId: text("competition_id").notNull().references(() => competition.id, { onDelete: "cascade" }),
+  teamId: text("team_id").notNull().references(() => team.id, { onDelete: "cascade" }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [
+  uniqueIndex("champion_pick_user_competition_idx").on(t.userId, t.competitionId),
 ]);
 
 /* ----------------------------- relations ----------------------------- */
@@ -179,4 +195,10 @@ export const matchRelations = relations(match, ({ one, many }) => ({
 export const predictionRelations = relations(prediction, ({ one }) => ({
   user: one(user, { fields: [prediction.userId], references: [user.id] }),
   match: one(match, { fields: [prediction.matchId], references: [match.id] }),
+}));
+
+export const championPickRelations = relations(championPick, ({ one }) => ({
+  user: one(user, { fields: [championPick.userId], references: [user.id] }),
+  competition: one(competition, { fields: [championPick.competitionId], references: [competition.id] }),
+  team: one(team, { fields: [championPick.teamId], references: [team.id] }),
 }));

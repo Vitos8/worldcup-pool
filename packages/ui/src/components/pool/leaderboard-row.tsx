@@ -46,7 +46,7 @@ export function LeaderboardRow({ row, last }: { row: Standing; last?: boolean })
         </span>
       </div>
       <div className="w-12 shrink-0 text-center text-[15px] text-[#63706a] md:w-[90px]">{row.played}</div>
-      <div className="w-14 shrink-0 text-right font-display text-xl font-bold text-ink md:w-[90px]">{row.points}</div>
+      <div className="w-14 shrink-0 text-center font-display text-xl font-bold text-ink md:w-[90px]">{row.points}</div>
     </a>
   )
 }

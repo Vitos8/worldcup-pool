@@ -28,6 +28,16 @@ function formatKickoffTime(iso: string) {
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
 }
 
+/** "1:1 · SUI on pens" when the pick includes a shootout call. */
+function pickLabelText(fixture: BracketFixture): string | undefined {
+  const pick = fixture.myPick
+  if (!pick) return undefined
+  const base = `${pick.home}:${pick.away}`
+  if (!pick.penaltyWinnerTeamId) return base
+  const pensTeam = [fixture.home, fixture.away].find((t) => t?.id === pick.penaltyWinnerTeamId)
+  return pensTeam ? `${base} · ${pensTeam.code} on pens` : base
+}
+
 function toDisplayMatch(fixture: BracketFixture): Match {
   const withPens = (score: number | null, pens: number | null) =>
     score === null ? undefined : pens !== null ? `${score} (${pens})` : String(score)
@@ -41,7 +51,7 @@ function toDisplayMatch(fixture: BracketFixture): Match {
     homeScore: withPens(fixture.homeScore, fixture.homePens),
     awayScore: withPens(fixture.awayScore, fixture.awayPens),
     winner: fixture.winner ?? undefined,
-    pick: fixture.myPick ? `${fixture.myPick.home}:${fixture.myPick.away}` : undefined,
+    pick: pickLabelText(fixture),
     points: fixture.myPick?.points ?? undefined,
   }
 }
@@ -55,21 +65,48 @@ export function MatchesPage({
   onSavePrediction,
   readOnly = false,
   playerName,
+  showTitle = true,
 }: {
   fixtures: BracketFixture[]
   onSavePrediction?: SavePrediction
   readOnly?: boolean
   playerName?: string
+  showTitle?: boolean
 }) {
   const [predictingId, setPredictingId] = useState<string | null>(null)
 
   const byId = new Map(fixtures.map((f) => [f.id, f]))
   const predicting = predictingId ? byId.get(predictingId) : undefined
 
-  const rounds: BracketRound[] = STAGE_ORDER.map((stage) => ({
-    title: STAGE_TITLES[stage],
-    matches: fixtures.filter((f) => f.stage === stage).map((f) => ({ id: f.id })),
-  }))
+  // A leading run of fully-played rounds is old news — collapse it by default
+  // so the bracket opens focused on the live action, with toggles to bring
+  // finished rounds back.
+  const isRoundFinished = (stage: BracketStage) => {
+    const stageFixtures = fixtures.filter((f) => f.stage === stage)
+    return stageFixtures.length > 0 && stageFixtures.every((f) => f.status === "finished")
+  }
+  const collapsible = STAGE_ORDER.filter(
+    (stage, index) => index < STAGE_ORDER.length - 1 && isRoundFinished(stage)
+  )
+  const [hiddenStages, setHiddenStages] = useState<ReadonlySet<BracketStage>>(
+    () => new Set(collapsible)
+  )
+
+  const toggleStage = (stage: BracketStage) => {
+    setHiddenStages((current) => {
+      const next = new Set(current)
+      if (next.has(stage)) next.delete(stage)
+      else next.add(stage)
+      return next
+    })
+  }
+
+  const rounds: BracketRound[] = STAGE_ORDER.filter((stage) => !hiddenStages.has(stage)).map(
+    (stage) => ({
+      title: STAGE_TITLES[stage],
+      matches: fixtures.filter((f) => f.stage === stage).map((f) => ({ id: f.id })),
+    })
+  )
 
   const renderNode = (node: BracketMatch) => {
     const fixture = byId.get(node.id)
@@ -127,7 +164,7 @@ export function MatchesPage({
           <div className="mt-2 border-t border-[#eef1ee] pt-2  text-xs font-semibold">
             {fixture.myPick ? (
               <span className="text-[#2a6fdb]">
-                Your pick: {fixture.myPick.home}:{fixture.myPick.away} — tap to edit
+                Your pick: {pickLabelText(fixture)} — tap to edit
               </span>
             ) : (
               <span className="text-brand-green">Tap to predict</span>
@@ -149,11 +186,30 @@ export function MatchesPage({
 
   return (
     <section>
-      <PageTitle hint={readOnly ? "Read-only — picks stay hidden until kickoff" : "Tap a fixture to predict the score"}>
-        {readOnly ? `${playerName ?? "Player"}'s bracket` : "Knockout bracket"}
-      </PageTitle>
+      {showTitle && (
+        <PageTitle hint={readOnly ? "Read-only — picks stay hidden until kickoff" : "Tap a fixture to predict the score"}>
+          {readOnly ? `${playerName ?? "Player"}'s bracket` : "Knockout bracket"}
+        </PageTitle>
+      )}
       <div className="w-full overflow-x-auto">
-        <div className="mx-auto w-fit">
+        <div className="w-fit">
+          {collapsible.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {collapsible.map((stage) => {
+                const hidden = hiddenStages.has(stage)
+                return (
+                  <button
+                    key={stage}
+                    type="button"
+                    onClick={() => toggleStage(stage)}
+                    className="rounded-full bg-white/15 px-3.5 py-1.5 font-display text-xs font-bold tracking-[0.1em] text-white/85 uppercase ring-1 ring-white/25 transition-colors hover:bg-white/25 hover:text-white"
+                  >
+                    {hidden ? `Show ${STAGE_TITLES[stage]}` : `Hide ${STAGE_TITLES[stage]}`}
+                  </button>
+                )
+              })}
+            </div>
+          )}
           <Bracket rounds={rounds} renderNode={renderNode} />
         </div>
       </div>

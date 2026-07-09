@@ -9,6 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
 import { cn } from "@workspace/ui/lib/utils"
 import { TeamBadge } from "./team-badge"
 import type { BracketFixture, Team } from "./data"
@@ -16,6 +23,8 @@ import type { BracketFixture, Team } from "./data"
 export interface Prediction {
   home: number
   away: number
+  /** Required when home === away: who advances on penalties (+1 if correct). */
+  penaltyWinnerTeamId?: string | null
 }
 
 export type SavePrediction = (matchId: string, prediction: Prediction) => Promise<{ error?: string }>
@@ -76,13 +85,22 @@ export function PredictDialog({
   const [prediction, setPrediction] = useState<Prediction>(
     fixture.myPick ? { home: fixture.myPick.home, away: fixture.myPick.away } : { home: 0, away: 0 }
   )
+  const [penaltyWinnerId, setPenaltyWinnerId] = useState<string | undefined>(
+    fixture.myPick?.penaltyWinnerTeamId ?? undefined
+  )
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const isDraw = prediction.home === prediction.away
+  const canPickPenaltyWinner = Boolean(fixture.home.id && fixture.away.id)
 
   async function handleSave() {
     setIsPending(true)
     setError(null)
-    const result = await onSave(fixture.id, prediction)
+    const result = await onSave(fixture.id, {
+      ...prediction,
+      penaltyWinnerTeamId: isDraw ? (penaltyWinnerId ?? null) : null,
+    })
     if (result.error) {
       setError(result.error)
       setIsPending(false)
@@ -114,10 +132,33 @@ export function PredictDialog({
             onChange={(v) => setPrediction((p) => ({ ...p, away: v }))}
           />
         </div>
+        {isDraw && canPickPenaltyWinner && (
+          <div className="flex flex-col gap-2 rounded-xl bg-[#f1f8f3] p-3">
+            <span className="text-sm font-semibold text-ink">
+              A draw needs a call — who goes through on penalties?
+            </span>
+            <span className="text-xs text-faded">Correct call earns +1 bonus point.</span>
+            <Select value={penaltyWinnerId} onValueChange={setPenaltyWinnerId}>
+              <SelectTrigger className="w-full bg-white">
+                <SelectValue placeholder="Pick the shootout winner" />
+              </SelectTrigger>
+              <SelectContent>
+                {[fixture.home, fixture.away].map((team) => (
+                  <SelectItem key={team.id} value={team.id!}>
+                    <span className="flex items-center gap-2.5">
+                      <TeamBadge team={team} />
+                      <span className="font-semibold text-ink">{team.name}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button
           onClick={handleSave}
-          disabled={isPending}
+          disabled={isPending || (isDraw && canPickPenaltyWinner && !penaltyWinnerId)}
           className={cn("bg-brand-green hover:bg-brand-green/90 w-full text-[15px] font-semibold text-white")}
         >
           {isPending ? "Saving…" : "Save prediction"}

@@ -1,6 +1,7 @@
 export type TeamTone = "gold" | "red" | "blue" | "gray"
 
 export interface Team {
+  id?: string // DB team id — present on server-fetched fixtures
   code: string // "CAN"
   name: string // "Canada"
   tone: TeamTone
@@ -42,6 +43,7 @@ export type BracketStage = "r16" | "qf" | "sf" | "final"
 export interface MyPick {
   home: number
   away: number
+  penaltyWinnerTeamId: string | null // set when the pick is a draw
   points: number | null // null until the match is settled
 }
 

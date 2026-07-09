@@ -28,14 +28,26 @@ are awarded after each match. World Cup first, extensible to Champions League.
 - Two-tab dashboard: /matches (bracket + predictions), /scores (leaderboard)
 - Routes: / (rules + scoring), /matches, /scores, /matches/:userId (read-only)
 - Predictions lock server-side at kickoff; LIVE badge shown, no edits after
+- Champion pick: every user must pick the cup winner (forced modal on entry,
+  after the username step); editable via the banner on /matches until
+  Fri 10.07.2026 22:00 Kyiv (19:00 UTC), then locked server-side. Champion
+  picks are always public — shown on /matches/:userId next to the avatar.
+- /matches/:userId is a standalone page (no dashboard tabs): back arrow,
+  big avatar, "[name]'s bracket", champion pick chip, read-only bracket
 
 ## Scoring
 - Exact score = 5
 - Correct outcome (win or draw) = 3
 - Wrong outcome = 0
+- Shootout call bonus = +1: a draw prediction must also name who advances
+  on penalties (enforced in the predict dialog + server action). If the
+  match really ends level in regular time and the named team advances,
+  +1 stacks on the base score (6 for exact draw, 4 for right-draw-wrong-numbers).
+- Champion call = +5: awarded once, after the final, to everyone whose
+  champion pick won the cup (computed in the leaderboard, not stored).
 
 Scoring is based on the regular-time score only. Penalty shootouts never
-change prediction points — see below.
+change the base prediction points — see below.
 
 ## Match results & bracket advancement
 - `match.homeScore` / `match.awayScore` hold the regular-time result; that's

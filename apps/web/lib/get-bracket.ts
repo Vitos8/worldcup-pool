@@ -7,12 +7,12 @@ import { settleFinishedPredictions } from "./settle-predictions"
 const COMPETITION_CODE = "WC"
 const SEASON = "2026"
 
-type TeamRow = { name: string; shortName: string | null; tla: string | null; crestUrl: string | null } | null
+type TeamRow = { id: string; name: string; shortName: string | null; tla: string | null; crestUrl: string | null } | null
 
 function toUiTeam(row: TeamRow): UiTeam | null {
   if (!row) return null
   const code = row.tla ?? row.name.slice(0, 3).toUpperCase()
-  return { code, name: row.shortName ?? row.name, tone: deriveTone(code), crestUrl: row.crestUrl }
+  return { id: row.id, code, name: row.shortName ?? row.name, tone: deriveTone(code), crestUrl: row.crestUrl }
 }
 
 const STAGE_ORDER = ["r16", "qf", "sf", "final"] as const
@@ -111,7 +111,14 @@ export async function getBracketFixtures(userId: string): Promise<BracketFixture
             : null,
     myPick: (() => {
       const pick = pickByMatchId.get(row.id)
-      return pick ? { home: pick.homeScore, away: pick.awayScore, points: pick.points } : null
+      return pick
+        ? {
+            home: pick.homeScore,
+            away: pick.awayScore,
+            penaltyWinnerTeamId: pick.penaltyWinnerTeamId,
+            points: pick.points,
+          }
+        : null
     })(),
   }))
 }

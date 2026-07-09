@@ -1,6 +1,6 @@
 import { and, eq, isNull, isNotNull } from "drizzle-orm"
 import { db, match, prediction } from "@workspace/db"
-import { scorePrediction } from "@workspace/shared"
+import { scorePrediction, scorePenaltyBonus } from "@workspace/shared"
 
 /**
  * Awards points for every unsettled prediction whose match has finished.
@@ -13,8 +13,10 @@ export async function settleFinishedPredictions() {
       predictionId: prediction.id,
       predictedHome: prediction.homeScore,
       predictedAway: prediction.awayScore,
+      predictedPenaltyWinnerTeamId: prediction.penaltyWinnerTeamId,
       actualHome: match.homeScore,
       actualAway: match.awayScore,
+      actualWinnerTeamId: match.winnerTeamId,
     })
     .from(prediction)
     .innerJoin(match, eq(prediction.matchId, match.id))
@@ -29,10 +31,16 @@ export async function settleFinishedPredictions() {
 
   const settledAt = new Date()
   for (const row of unsettled) {
-    const points = scorePrediction(
-      { home: row.actualHome!, away: row.actualAway! },
-      { home: row.predictedHome, away: row.predictedAway }
-    )
+    const actual = { home: row.actualHome!, away: row.actualAway! }
+    const predicted = { home: row.predictedHome, away: row.predictedAway }
+    const points =
+      scorePrediction(actual, predicted) +
+      scorePenaltyBonus({
+        actual,
+        predicted,
+        actualAdvancingTeamId: row.actualWinnerTeamId,
+        predictedAdvancingTeamId: row.predictedPenaltyWinnerTeamId,
+      })
     await db.update(prediction).set({ points, settledAt }).where(eq(prediction.id, row.predictionId))
   }
 }

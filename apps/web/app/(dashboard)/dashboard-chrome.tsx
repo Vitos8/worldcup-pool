@@ -5,7 +5,7 @@ import { DashboardHeader, type PoolUser } from "@workspace/ui/components/pool/da
 import { authClient } from "@/lib/auth-client"
 import { DashboardNav } from "./dashboard-nav"
 
-export function DashboardChrome({ user }: { user: PoolUser }) {
+export function DashboardChrome({ user, showNav = true }: { user: PoolUser; showNav?: boolean }) {
   const router = useRouter()
 
   async function handleSignOut() {
@@ -16,7 +16,7 @@ export function DashboardChrome({ user }: { user: PoolUser }) {
   return (
     <>
       <DashboardHeader user={user} onSignOut={handleSignOut} />
-      <DashboardNav />
+      {showNav && <DashboardNav />}
     </>
   )
 }
