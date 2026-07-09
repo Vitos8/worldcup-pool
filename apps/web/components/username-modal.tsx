@@ -15,11 +15,23 @@ import {
 } from "@workspace/ui/components/dialog"
 import { authClient } from "@/lib/auth-client"
 
-export function UsernameModal() {
+/**
+ * First-login mode (no props): forced, can't be dismissed until a username is
+ * saved. Edit mode (`onClose` provided): regular dismissable dialog, prefilled.
+ */
+export function UsernameModal({
+  initialUsername = "",
+  onClose,
+}: {
+  initialUsername?: string
+  onClose?: () => void
+}) {
   const router = useRouter()
-  const [username, setUsername] = useState("")
+  const [username, setUsername] = useState(initialUsername)
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
+
+  const isEdit = onClose !== undefined
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -37,18 +49,23 @@ export function UsernameModal() {
       return
     }
 
+    // Bypass the session cookie cache so the header shows the new name
+    // immediately instead of up to five minutes later.
+    await authClient.getSession({ query: { disableCookieCache: true } })
+
     router.refresh()
+    onClose?.()
   }
 
   return (
-    <Dialog open>
+    <Dialog open onOpenChange={(open) => !open && onClose?.()}>
       <DialogContent
-        showCloseButton={false}
-        onEscapeKeyDown={(event) => event.preventDefault()}
-        onInteractOutside={(event) => event.preventDefault()}
+        showCloseButton={isEdit}
+        onEscapeKeyDown={(event) => !isEdit && event.preventDefault()}
+        onInteractOutside={(event) => !isEdit && event.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Choose a username</DialogTitle>
+          <DialogTitle>{isEdit ? "Change your username" : "Choose a username"}</DialogTitle>
           <DialogDescription>
             This is how your friends will see you on the leaderboard.
           </DialogDescription>
@@ -68,8 +85,11 @@ export function UsernameModal() {
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={isPending || username.length < 3}>
-              Save
+            <Button
+              type="submit"
+              disabled={isPending || username.length < 3 || (isEdit && username === initialUsername)}
+            >
+              {isPending ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </form>

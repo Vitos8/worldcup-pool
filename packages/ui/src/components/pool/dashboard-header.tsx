@@ -1,13 +1,12 @@
 "use client"
 
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowDown01Icon, LogoutIcon } from "@hugeicons/core-free-icons"
+import { ArrowDown01Icon, LogoutIcon, PencilEdit02Icon } from "@hugeicons/core-free-icons"
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu"
@@ -23,9 +22,11 @@ export interface PoolUser {
 export function DashboardHeader({
   user,
   onSignOut,
+  onEditName,
 }: {
   user: PoolUser
   onSignOut?: () => void
+  onEditName?: () => void
 }) {
   return (
     <header className="flex h-[78px] items-center justify-between px-4 md:px-8">
@@ -41,9 +42,17 @@ export function DashboardHeader({
           <span className="hidden text-[15px] font-semibold text-white md:block">{user.name}</span>
           <HugeiconsIcon icon={ArrowDown01Icon} className="-ml-2 size-4 text-white/75" strokeWidth={2} />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-[180px]">
-          <DropdownMenuLabel className="md:hidden">{user.name}</DropdownMenuLabel>
-          <DropdownMenuSeparator className="md:hidden" />
+        <DropdownMenuContent align="end" className="min-w-[200px]">
+          {onEditName && (
+            <>
+              <DropdownMenuItem onSelect={onEditName}>
+                <HugeiconsIcon icon={PencilEdit02Icon} data-icon="inline-start" />
+                <span className="min-w-0 flex-1 truncate font-semibold">{user.name}</span>
+                <span className="text-xs text-muted-foreground">edit</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           {onSignOut && (
             <DropdownMenuItem onSelect={onSignOut}>
               <HugeiconsIcon icon={LogoutIcon} data-icon="inline-start" />

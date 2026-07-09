@@ -69,7 +69,7 @@ export default async function Page({ params }: { params: Promise<{ userId: strin
             Back
           </Link>
 
-          <div className="mt-4 mb-15 flex items-center gap-5 ">
+          <div className="mt-4 mb-6 flex items-center gap-5 ">
             <Avatar className="size-20 bg-white ring-2 ring-white/60 md:size-24">
               {player.image && <AvatarImage src={player.image} alt={playerName} className="object-cover object-top" />}
               <AvatarFallback className="bg-white font-display text-2xl font-bold tracking-[0.06em] text-brand-green">
