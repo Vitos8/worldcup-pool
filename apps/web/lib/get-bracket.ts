@@ -19,56 +19,61 @@ const STAGE_ORDER = ["r16", "qf", "sf", "final"] as const
 
 interface OrderableMatch {
   stage: string
-  kickoff: Date
+  externalId: string
   homeTeamId: string | null
   awayTeamId: string | null
   winnerTeamId: string | null
 }
 
 /**
- * Bracket position isn't chronological: a quarter-final can kick off before
- * another whose feeders finished earlier. The bracket UI pairs round r's
- * slot k with slots 2k/2k+1 of round r-1, so each round is ordered by where
- * its teams actually came from: a match whose team won feeder match i belongs
- * in slot floor(i / 2). Matches still TBD fall back to kickoff order and
- * self-correct once their teams resolve.
+ * Bracket position isn't chronological — the official chart interleaves
+ * halves across matchdays (e.g. WC2026 QFs by kickoff were FRA/MAR, ESP/BEL,
+ * NOR/ENG, ARG/SUI but the first two share a semi-final). Two facts pin the
+ * layout down instead:
+ *  1. football-data match ids follow FIFA's official match numbering, which
+ *     IS the top-to-bottom chart order within a round.
+ *  2. Once a match's teams are known, its feeders are identifiable — the
+ *     previous-round matches those teams won.
+ * So: order every round by external id, then walk top-down from the final
+ * permuting each earlier round to sit under its parent (home-side feeder in
+ * slot 2k, away-side in 2k+1). Matches whose parents are still TBD keep id
+ * order and self-correct as teams resolve.
  */
 function toBracketOrder<T extends OrderableMatch>(rows: T[]): T[] {
   const byStage = new Map<string, T[]>(STAGE_ORDER.map((stage) => [stage, []]))
   for (const row of rows) byStage.get(row.stage)?.push(row)
 
-  const byKickoff = (a: T, b: T) => a.kickoff.getTime() - b.kickoff.getTime()
-  const ordered: T[] = []
-  let previousRound: T[] = []
+  const byExternalId = (a: T, b: T) => Number(a.externalId) - Number(b.externalId)
+  const rounds = STAGE_ORDER.map((stage) => [...(byStage.get(stage) ?? [])].sort(byExternalId))
 
-  for (const stage of STAGE_ORDER) {
-    const roundMatches = [...(byStage.get(stage) ?? [])].sort(byKickoff)
-    const slots: (T | null)[] = new Array(roundMatches.length).fill(null)
-    const unplaced: T[] = []
+  for (let r = rounds.length - 1; r > 0; r--) {
+    const parents = rounds[r]!
+    const children = rounds[r - 1]!
+    if (parents.length === 0 || children.length !== parents.length * 2) continue
 
-    for (const m of roundMatches) {
-      const feederIndex = previousRound.findIndex(
-        (p) =>
-          p.winnerTeamId !== null &&
-          (p.winnerTeamId === m.homeTeamId || p.winnerTeamId === m.awayTeamId)
-      )
-      const slot = feederIndex >= 0 ? Math.floor(feederIndex / 2) : -1
-      if (slot >= 0 && slot < slots.length && slots[slot] === null) {
-        slots[slot] = m
-      } else {
-        unplaced.push(m)
-      }
-    }
+    const slots: (T | null)[] = new Array(children.length).fill(null)
+    const placed = new Set<T>()
+
+    parents.forEach((parent, parentIndex) => {
+      const sides = [parent.homeTeamId, parent.awayTeamId]
+      sides.forEach((teamId, side) => {
+        if (!teamId) return
+        const feeder = children.find((c) => !placed.has(c) && c.winnerTeamId === teamId)
+        if (feeder) {
+          slots[parentIndex * 2 + side] = feeder
+          placed.add(feeder)
+        }
+      })
+    })
+
+    const leftovers = children.filter((c) => !placed.has(c))
     for (let i = 0; i < slots.length; i++) {
-      if (slots[i] === null) slots[i] = unplaced.shift() ?? null
+      if (slots[i] === null) slots[i] = leftovers.shift() ?? null
     }
-
-    const round = slots.filter((m): m is T => m !== null)
-    ordered.push(...round)
-    previousRound = round
+    rounds[r - 1] = slots.filter((m): m is T => m !== null)
   }
 
-  return ordered
+  return rounds.flat()
 }
 
 export async function getBracketFixtures(userId: string): Promise<BracketFixture[]> {

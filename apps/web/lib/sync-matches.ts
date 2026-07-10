@@ -130,9 +130,14 @@ export async function ensureFreshMatches() {
     return
   }
 
-  after(async () => {
-    await syncIfStale()
-  })
+  try {
+    after(async () => {
+      await syncIfStale()
+    })
+  } catch {
+    // Outside a request scope (scripts, tests) there's no response to defer
+    // behind — fresh-enough data is already guaranteed above.
+  }
 }
 
 /**
