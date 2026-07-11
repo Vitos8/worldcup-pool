@@ -63,6 +63,24 @@ export const rawMatchesResponseSchema = z.object({
   matches: z.array(rawMatchSchema),
 })
 
+/**
+ * Lenient batch parser: football-data.org occasionally ships a single
+ * corrupted match (observed in prod: a timestamp string in the `status`
+ * field). One bad row must not poison the whole sync — validate per match,
+ * quarantine failures for the caller to log.
+ */
+export function parseMatchesResponse(raw: unknown): { matches: RawMatch[]; skipped: unknown[] } {
+  const envelope = z.object({ matches: z.array(z.unknown()) }).parse(raw)
+  const matches: RawMatch[] = []
+  const skipped: unknown[] = []
+  for (const candidate of envelope.matches) {
+    const result = rawMatchSchema.safeParse(candidate)
+    if (result.success) matches.push(result.data)
+    else skipped.push(candidate)
+  }
+  return { matches, skipped }
+}
+
 export type RawTeam = z.infer<typeof rawTeamSchema>
 export type RawScore = z.infer<typeof rawScoreSchema>
 export type RawMatch = z.infer<typeof rawMatchSchema>

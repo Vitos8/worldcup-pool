@@ -1,7 +1,7 @@
 import { after } from "next/server"
 import { and, eq, sql } from "drizzle-orm"
 import { db, competition, team, match } from "@workspace/db"
-import { rawMatchesResponseSchema, mapMatch, type MappedTeam, type MatchStage } from "@workspace/shared"
+import { parseMatchesResponse, mapMatch, type MappedTeam, type MatchStage } from "@workspace/shared"
 import { footballDataFetch } from "./football-data-client"
 
 const COMPETITION_CODE = "WC"
@@ -27,7 +27,10 @@ const TBD_STALE_MS = 15 * 60_000
 
 export async function syncWorldCupMatches() {
   const raw = await footballDataFetch(`/competitions/${COMPETITION_CODE}/matches`)
-  const { matches } = rawMatchesResponseSchema.parse(raw)
+  const { matches, skipped } = parseMatchesResponse(raw)
+  if (skipped.length > 0) {
+    console.warn(`football-data.org: skipped ${skipped.length} malformed match(es)`, skipped)
+  }
   const mapped = matches.map(mapMatch).filter((m) => TRACKED_STAGES.includes(m.stage))
 
   const [competitionRow] = await db
