@@ -42,7 +42,7 @@ export function MatchesHeader({
         <h1 className="font-display text-3xl leading-none font-bold tracking-tight text-white uppercase md:text-4xl">
           {user.name}
         </h1>
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+        <div className="flex flex-wrap flex-col sm:flex-row items-start  sm:items-center gap-x-2.5 gap-y-1.5">
           <span className="font-display text-lg font-bold tracking-[0.14em] text-yellow-400 uppercase">
             🏆 Champion <span className="text-white">pick</span>
           </span>
