@@ -41,22 +41,27 @@ are awarded after each match. World Cup first, extensible to Champions League.
 - Wrong outcome = 0
 - Shootout call bonus = +1: a draw prediction must also name who advances
   on penalties (enforced in the predict dialog + server action). If the
-  match really ends level in regular time and the named team advances,
-  +1 stacks on the base score (6 for exact draw, 4 for right-draw-wrong-numbers).
+  match really ends level after extra time (goes to a shootout) and the
+  named team advances, +1 stacks on the base score (6 for exact draw,
+  4 for right-draw-wrong-numbers).
 - Champion call = +5: awarded once, after the final, to everyone whose
   champion pick won the cup (computed in the leaderboard, not stored).
 
-Scoring is based on the regular-time score only. Penalty shootouts never
-change the base prediction points — see below.
+Scoring is based on the final played score: after extra time when there was
+one, before penalties (decided 2026-07-12, replacing the earlier
+regular-time-only rule). Shootout kicks never change the base points.
 
 ## Match results & bracket advancement
-- `match.homeScore` / `match.awayScore` hold the regular-time result; that's
-  what predictions are scored against.
-- For knockout matches, if regular time ends level, `winnerTeamId` is
+- `match.homeScore` / `match.awayScore` hold the final played score (incl.
+  extra time, excl. penalty kicks); that's what predictions are scored
+  against. `wentToExtraTime` drives the "FT (aet)" badge.
+- For knockout matches that end level after extra time, `winnerTeamId` is
   resolved from the penalty shootout (`homePens` / `awayPens`). The penalty
-  winner advances in the bracket (`nextMatchId` / `nextSlot`) but does not
-  affect prediction points — a drawn regular-time score still only scores
-  the "correct outcome" tier (3pts) regardless of who wins on pens.
+  winner advances in the bracket but the shootout does not affect the base
+  prediction points — a drawn score scores the draw tiers plus the +1
+  shootout-call bonus when the named team advances.
+- Settlement is self-healing: points are recomputed for finished matches on
+  every settle pass, so provider corrections rewrite stale points.
 
 ## Live scores
 - No websockets / real-time push for MVP.

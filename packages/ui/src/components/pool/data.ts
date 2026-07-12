@@ -57,6 +57,7 @@ export interface BracketFixture {
   away: Team | null
   homeScore: number | null
   awayScore: number | null
+  wentToExtraTime: boolean
   homePens: number | null
   awayPens: number | null
   winner: "home" | "away" | null

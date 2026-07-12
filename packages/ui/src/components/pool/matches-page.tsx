@@ -45,7 +45,14 @@ function toDisplayMatch(fixture: BracketFixture): Match {
   return {
     id: fixture.id,
     date: formatKickoffDate(fixture.kickoff),
-    status: fixture.status === "live" ? "Live" : fixture.homePens !== null ? "FT (pens)" : "Full time",
+    status:
+      fixture.status === "live"
+        ? "Live"
+        : fixture.homePens !== null
+          ? "FT (pens)"
+          : fixture.wentToExtraTime
+            ? "FT (aet)"
+            : "Full time",
     home: fixture.home!,
     away: fixture.away!,
     homeScore: withPens(fixture.homeScore, fixture.homePens),

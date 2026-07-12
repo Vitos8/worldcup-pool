@@ -19,6 +19,7 @@ export interface MappedMatch {
   status: MatchStatus
   homeScore: number | null
   awayScore: number | null
+  wentToExtraTime: boolean
   homePens: number | null
   awayPens: number | null
   winnerSide: "home" | "away" | null
@@ -61,17 +62,31 @@ export function mapTeam(raw: RawTeam): MappedTeam | null {
 }
 
 /**
- * football-data.org folds penalties into `fullTime` once a shootout happens
- * (e.g. regularTime 1-1, penalties 3-4 → fullTime 4-5). Our schema stores the
- * regular-time score and the penalty score as separate columns, so they need
- * to be pulled apart here rather than trusting `fullTime` directly.
+ * Predictions are scored against the final *played* score: after extra time
+ * when there was one, but before penalties. football-data.org folds penalty
+ * kicks into `fullTime` once a shootout happens (e.g. regularTime 1-1,
+ * penalties 3-4 → fullTime 4-5), so for shootout matches the played score is
+ * reconstructed from regularTime + extraTime instead of trusting `fullTime`.
  */
 function mapScore(score: RawScore) {
-  const regular = score.duration === "REGULAR" ? score.fullTime : (score.regularTime ?? score.fullTime)
+  const played =
+    score.duration === "PENALTY_SHOOTOUT"
+      ? {
+          home:
+            score.regularTime?.home === null || score.regularTime?.home === undefined
+              ? null
+              : score.regularTime.home + (score.extraTime?.home ?? 0),
+          away:
+            score.regularTime?.away === null || score.regularTime?.away === undefined
+              ? null
+              : score.regularTime.away + (score.extraTime?.away ?? 0),
+        }
+      : score.fullTime
 
   return {
-    homeScore: regular.home,
-    awayScore: regular.away,
+    homeScore: played.home,
+    awayScore: played.away,
+    wentToExtraTime: score.duration !== "REGULAR",
     homePens: score.duration === "PENALTY_SHOOTOUT" ? (score.penalties?.home ?? null) : null,
     awayPens: score.duration === "PENALTY_SHOOTOUT" ? (score.penalties?.away ?? null) : null,
     winnerSide:
@@ -80,14 +95,19 @@ function mapScore(score: RawScore) {
 }
 
 export function mapMatch(raw: RawMatch): MappedMatch {
+  const status = STATUS_MAP[raw.status]
+  const score = mapScore(raw.score)
   return {
     externalId: String(raw.id),
     stage: STAGE_MAP[raw.stage],
     groupName: raw.group?.replace("GROUP_", "") ?? null,
     kickoff: new Date(raw.utcDate),
-    status: STATUS_MAP[raw.status],
+    status,
     homeTeam: mapTeam(raw.homeTeam),
     awayTeam: mapTeam(raw.awayTeam),
-    ...mapScore(raw.score),
+    ...score,
+    // The provider live-updates `winner` to whoever currently leads — a
+    // winner only exists once the match is actually over.
+    winnerSide: status === "finished" ? score.winnerSide : null,
   }
 }

@@ -1,19 +1,22 @@
-import { and, eq, isNull, isNotNull } from "drizzle-orm"
+import { and, eq, isNotNull } from "drizzle-orm"
 import { db, match, prediction } from "@workspace/db"
 import { scorePrediction, scorePenaltyBonus } from "@workspace/shared"
 
 /**
- * Awards points for every unsettled prediction whose match has finished.
- * Idempotent (settledAt guards re-processing), cheap when there's nothing
- * to do — safe to call on page loads after a sync.
+ * Awards points for every prediction whose match has finished. Recomputes
+ * settled predictions too and rewrites them when the result changed —
+ * self-healing for provider corrections (wrong live feeds, extra-time
+ * results arriving late, etc.). Idempotent and cheap at pool scale.
  */
 export async function settleFinishedPredictions() {
-  const unsettled = await db
+  const rows = await db
     .select({
       predictionId: prediction.id,
       predictedHome: prediction.homeScore,
       predictedAway: prediction.awayScore,
       predictedPenaltyWinnerTeamId: prediction.penaltyWinnerTeamId,
+      currentPoints: prediction.points,
+      settledAt: prediction.settledAt,
       actualHome: match.homeScore,
       actualAway: match.awayScore,
       actualWinnerTeamId: match.winnerTeamId,
@@ -21,16 +24,11 @@ export async function settleFinishedPredictions() {
     .from(prediction)
     .innerJoin(match, eq(prediction.matchId, match.id))
     .where(
-      and(
-        isNull(prediction.settledAt),
-        eq(match.status, "finished"),
-        isNotNull(match.homeScore),
-        isNotNull(match.awayScore)
-      )
+      and(eq(match.status, "finished"), isNotNull(match.homeScore), isNotNull(match.awayScore))
     )
 
   const settledAt = new Date()
-  for (const row of unsettled) {
+  for (const row of rows) {
     const actual = { home: row.actualHome!, away: row.actualAway! }
     const predicted = { home: row.predictedHome, away: row.predictedAway }
     const points =
@@ -41,6 +39,12 @@ export async function settleFinishedPredictions() {
         actualAdvancingTeamId: row.actualWinnerTeamId,
         predictedAdvancingTeamId: row.predictedPenaltyWinnerTeamId,
       })
-    await db.update(prediction).set({ points, settledAt }).where(eq(prediction.id, row.predictionId))
+
+    if (row.currentPoints !== points || row.settledAt === null) {
+      await db
+        .update(prediction)
+        .set({ points, settledAt: row.settledAt ?? settledAt })
+        .where(eq(prediction.id, row.predictionId))
+    }
   }
 }

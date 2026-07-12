@@ -22,6 +22,7 @@ export const rawScoreSchema = z.object({
   duration: z.enum(["REGULAR", "EXTRA_TIME", "PENALTY_SHOOTOUT"]),
   fullTime: scoreLine,
   regularTime: scoreLine.optional(),
+  extraTime: scoreLine.optional(),
   penalties: scoreLine.optional(),
 })
 

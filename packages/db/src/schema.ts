@@ -121,8 +121,10 @@ export const match = pgTable("match", {
   awayTeamId: text("away_team_id").references(() => team.id),
   kickoff: timestamp("kickoff", { withTimezone: true }).notNull(), // the lock boundary
   status: matchStatus("status").default("scheduled").notNull(),
+  // final played score: after extra time when there was one, before penalties
   homeScore: integer("home_score"),
   awayScore: integer("away_score"),
+  wentToExtraTime: boolean("went_to_extra_time").default(false).notNull(),
   homePens: integer("home_pens"),
   awayPens: integer("away_pens"),
   winnerTeamId: text("winner_team_id").references(() => team.id),

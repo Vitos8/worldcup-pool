@@ -104,6 +104,7 @@ export async function getBracketFixtures(userId: string): Promise<BracketFixture
     away: toUiTeam(row.awayTeam),
     homeScore: row.homeScore,
     awayScore: row.awayScore,
+    wentToExtraTime: row.wentToExtraTime,
     homePens: row.homePens,
     awayPens: row.awayPens,
     winner:
