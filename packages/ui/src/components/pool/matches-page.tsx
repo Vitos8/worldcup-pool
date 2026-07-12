@@ -95,8 +95,10 @@ export function MatchesPage({
   const collapsible = STAGE_ORDER.filter(
     (stage, index) => index < STAGE_ORDER.length - 1 && isRoundFinished(stage)
   )
+  // Hide old finished rounds by default, but keep the most recently completed
+  // one visible — it's still fresh news (all rounds stay toggleable).
   const [hiddenStages, setHiddenStages] = useState<ReadonlySet<BracketStage>>(
-    () => new Set(collapsible)
+    () => new Set(collapsible.slice(0, -1))
   )
 
   const toggleStage = (stage: BracketStage) => {
