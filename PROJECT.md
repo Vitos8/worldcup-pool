@@ -35,21 +35,21 @@ are awarded after each match. World Cup first, extensible to Champions League.
 - /matches/:userId is a standalone page (no dashboard tabs): back arrow,
   big avatar, "[name]'s bracket", champion pick chip, read-only bracket
 
-## Scoring
-- Exact score = 5
-- Correct outcome (win or draw) = 3
-- Wrong outcome = 0
-- Shootout call bonus = +1: a draw prediction must also name who advances
-  on penalties (enforced in the predict dialog + server action). If the
-  match really ends level after extra time (goes to a shootout) and the
-  named team advances, +1 stacks on the base score (6 for exact draw,
-  4 for right-draw-wrong-numbers).
+## Scoring (matrix decided 2026-07-12, scored against the 90-minute result)
+- Match decided in 90 minutes:
+  - exact score = 5, correct winner = 3, everything else (incl. draw picks) = 0
+- 90 minutes ended level (match went to ET and/or penalties):
+  - draw predicted: exact vs the 90' score = 5, otherwise 3;
+    +1 shootout-call bonus when the named advancer went through
+  - win predicted: 1 point if the backed team advanced (via ET or pens), else 0
+- Stage multiplier: semi-finals and the final pay double — the whole matrix
+  result ×2 (exact = 10, win = 6, advance call = 2, draw+call = 8/12).
 - Champion call = +5: awarded once, after the final, to everyone whose
-  champion pick won the cup (computed in the leaderboard, not stored).
+  champion pick won the cup (not multiplied).
 
-Scoring is based on the final played score: after extra time when there was
-one, before penalties (decided 2026-07-12, replacing the earlier
-regular-time-only rule). Shootout kicks never change the base points.
+Display shows the final played score (after ET, before pens) with an
+"FT (aet)" / "FT (pens)" badge; scoring always compares against the
+90-minute score stored separately (`homeScoreRegular`/`awayScoreRegular`).
 
 ## Match results & bracket advancement
 - `match.homeScore` / `match.awayScore` hold the final played score (incl.

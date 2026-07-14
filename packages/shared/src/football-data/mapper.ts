@@ -19,6 +19,8 @@ export interface MappedMatch {
   status: MatchStatus
   homeScore: number | null
   awayScore: number | null
+  homeScoreRegular: number | null
+  awayScoreRegular: number | null
   wentToExtraTime: boolean
   homePens: number | null
   awayPens: number | null
@@ -83,9 +85,13 @@ function mapScore(score: RawScore) {
         }
       : score.fullTime
 
+  const regular = score.duration === "REGULAR" ? score.fullTime : (score.regularTime ?? score.fullTime)
+
   return {
     homeScore: played.home,
     awayScore: played.away,
+    homeScoreRegular: regular.home,
+    awayScoreRegular: regular.away,
     wentToExtraTime: score.duration !== "REGULAR",
     homePens: score.duration === "PENALTY_SHOOTOUT" ? (score.penalties?.home ?? null) : null,
     awayPens: score.duration === "PENALTY_SHOOTOUT" ? (score.penalties?.away ?? null) : null,

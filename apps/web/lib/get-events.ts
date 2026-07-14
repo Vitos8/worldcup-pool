@@ -25,10 +25,10 @@ export async function getExactScoreEvents(): Promise<PoolEvent[]> {
   return rows
     .filter(
       (row) =>
-        row.match.homeScore !== null &&
-        row.match.awayScore !== null &&
-        row.homeScore === row.match.homeScore &&
-        row.awayScore === row.match.awayScore
+        row.match.homeScoreRegular !== null &&
+        row.match.awayScoreRegular !== null &&
+        row.homeScore === row.match.homeScoreRegular &&
+        row.awayScore === row.match.awayScoreRegular
     )
     .sort((a, b) => b.match.kickoff.getTime() - a.match.kickoff.getTime())
     .map((row) => {

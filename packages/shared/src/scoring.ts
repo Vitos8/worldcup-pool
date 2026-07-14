@@ -5,38 +5,70 @@ export interface ScorePair {
 
 export const POINTS_EXACT = 5
 export const POINTS_OUTCOME = 3
-export const POINTS_WRONG = 0
 export const POINTS_PENALTY_BONUS = 1
+/** Consolation for a win pick whose team only got through in ET / on pens. */
+export const POINTS_ADVANCE_CALL = 1
 /** Awarded once, after the final, when a user's champion pick wins the cup. */
 export const POINTS_CHAMPION = 5
 
 /**
- * Scores a prediction against the final played score — after extra time when
- * there was one, before penalties. Shootout kicks never affect this base
- * score; a match that ends level after 120 minutes scores as a draw no
- * matter who advances (see PROJECT.md).
+ * Semi-finals and the final pay double: the whole matrix result is
+ * multiplied (exact = 10, win = 6, advance call = 2, ...). The champion
+ * call is not multiplied.
  */
-export function scorePrediction(actual: ScorePair, predicted: ScorePair): number {
-  if (actual.home === predicted.home && actual.away === predicted.away) return POINTS_EXACT
+export function stagePointsMultiplier(stage: string): number {
+  return stage === "sf" || stage === "final" ? 2 : 1
+}
 
-  const outcome = ({ home, away }: ScorePair) => Math.sign(home - away)
-  return outcome(actual) === outcome(predicted) ? POINTS_OUTCOME : POINTS_WRONG
+export interface KnockoutScoringInput {
+  /** 90-minute score — the basis for all score comparisons. */
+  regularTime: ScorePair
+  predicted: ScorePair
+  homeTeamId: string | null
+  awayTeamId: string | null
+  /** Who went through (match winner incl. ET/pens). */
+  advancingTeamId: string | null
+  /** The draw-prediction shootout call, when the user made one. */
+  predictedAdvancingTeamId: string | null
 }
 
 /**
- * Draw predictions carry a second call: who advances on penalties. Correct
- * call on a match that actually ended level after extra time (i.e. went to
- * a shootout) earns +1 on top of the base score (6 total for an exact draw,
- * 4 for right-draw-wrong-numbers).
+ * Knockout scoring matrix (decided 2026-07-12):
+ *
+ *   Match decided in 90 minutes:
+ *     exact score → 5, correct winner → 3, anything else (incl. draw picks) → 0
+ *
+ *   90 minutes ended level (match went to ET and/or penalties):
+ *     draw predicted → 5 if exact vs the 90' score, else 3;
+ *                      +1 when the named advancer actually went through
+ *     win predicted  → 1 if the backed team advanced (via ET or pens), else 0
  */
-export function scorePenaltyBonus(args: {
-  actual: ScorePair
-  predicted: ScorePair
-  actualAdvancingTeamId: string | null
-  predictedAdvancingTeamId: string | null
-}): number {
-  const isDraw = ({ home, away }: ScorePair) => home === away
-  if (!isDraw(args.actual) || !isDraw(args.predicted)) return 0
-  if (!args.actualAdvancingTeamId || !args.predictedAdvancingTeamId) return 0
-  return args.actualAdvancingTeamId === args.predictedAdvancingTeamId ? POINTS_PENALTY_BONUS : 0
+export function scoreKnockoutPrediction(input: KnockoutScoringInput): number {
+  const { regularTime, predicted } = input
+  const predictedDraw = predicted.home === predicted.away
+  const levelAfter90 = regularTime.home === regularTime.away
+
+  if (!levelAfter90) {
+    if (predictedDraw) return 0
+    if (regularTime.home === predicted.home && regularTime.away === predicted.away) {
+      return POINTS_EXACT
+    }
+    const outcome = ({ home, away }: ScorePair) => Math.sign(home - away)
+    return outcome(regularTime) === outcome(predicted) ? POINTS_OUTCOME : 0
+  }
+
+  if (predictedDraw) {
+    const base =
+      regularTime.home === predicted.home && regularTime.away === predicted.away
+        ? POINTS_EXACT
+        : POINTS_OUTCOME
+    const calledAdvancerRight =
+      input.predictedAdvancingTeamId !== null &&
+      input.predictedAdvancingTeamId === input.advancingTeamId
+    return base + (calledAdvancerRight ? POINTS_PENALTY_BONUS : 0)
+  }
+
+  const backedTeamId = predicted.home > predicted.away ? input.homeTeamId : input.awayTeamId
+  const backedTeamAdvanced = backedTeamId !== null && backedTeamId === input.advancingTeamId
+  return backedTeamAdvanced ? POINTS_ADVANCE_CALL : 0
 }

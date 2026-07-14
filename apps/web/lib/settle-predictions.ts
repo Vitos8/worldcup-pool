@@ -1,12 +1,12 @@
 import { and, eq, isNotNull } from "drizzle-orm"
 import { db, match, prediction } from "@workspace/db"
-import { scorePrediction, scorePenaltyBonus } from "@workspace/shared"
+import { scoreKnockoutPrediction, stagePointsMultiplier } from "@workspace/shared"
 
 /**
  * Awards points for every prediction whose match has finished. Recomputes
- * settled predictions too and rewrites them when the result changed —
- * self-healing for provider corrections (wrong live feeds, extra-time
- * results arriving late, etc.). Idempotent and cheap at pool scale.
+ * settled predictions too and rewrites them when the result (or the scoring
+ * rules) changed — self-healing for provider corrections and rule updates.
+ * Idempotent and cheap at pool scale.
  */
 export async function settleFinishedPredictions() {
   const rows = await db
@@ -17,28 +17,34 @@ export async function settleFinishedPredictions() {
       predictedPenaltyWinnerTeamId: prediction.penaltyWinnerTeamId,
       currentPoints: prediction.points,
       settledAt: prediction.settledAt,
-      actualHome: match.homeScore,
-      actualAway: match.awayScore,
-      actualWinnerTeamId: match.winnerTeamId,
+      stage: match.stage,
+      regularHome: match.homeScoreRegular,
+      regularAway: match.awayScoreRegular,
+      homeTeamId: match.homeTeamId,
+      awayTeamId: match.awayTeamId,
+      winnerTeamId: match.winnerTeamId,
     })
     .from(prediction)
     .innerJoin(match, eq(prediction.matchId, match.id))
     .where(
-      and(eq(match.status, "finished"), isNotNull(match.homeScore), isNotNull(match.awayScore))
+      and(
+        eq(match.status, "finished"),
+        isNotNull(match.homeScoreRegular),
+        isNotNull(match.awayScoreRegular)
+      )
     )
 
   const settledAt = new Date()
   for (const row of rows) {
-    const actual = { home: row.actualHome!, away: row.actualAway! }
-    const predicted = { home: row.predictedHome, away: row.predictedAway }
     const points =
-      scorePrediction(actual, predicted) +
-      scorePenaltyBonus({
-        actual,
-        predicted,
-        actualAdvancingTeamId: row.actualWinnerTeamId,
+      scoreKnockoutPrediction({
+        regularTime: { home: row.regularHome!, away: row.regularAway! },
+        predicted: { home: row.predictedHome, away: row.predictedAway },
+        homeTeamId: row.homeTeamId,
+        awayTeamId: row.awayTeamId,
+        advancingTeamId: row.winnerTeamId,
         predictedAdvancingTeamId: row.predictedPenaltyWinnerTeamId,
-      })
+      }) * stagePointsMultiplier(row.stage)
 
     if (row.currentPoints !== points || row.settledAt === null) {
       await db

@@ -117,8 +117,7 @@ export function PredictDialog({
             Your prediction
           </DialogTitle>
           <DialogDescription>
-            {dateLabel} · {timeLabel} — final score (after extra time, before penalties). You can
-            change your pick until kickoff.
+            {dateLabel} · {timeLabel} — 90-minute score. You can change your pick until kickoff.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3.5">

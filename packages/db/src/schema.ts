@@ -122,8 +122,12 @@ export const match = pgTable("match", {
   kickoff: timestamp("kickoff", { withTimezone: true }).notNull(), // the lock boundary
   status: matchStatus("status").default("scheduled").notNull(),
   // final played score: after extra time when there was one, before penalties
+  // — this is what the UI displays
   homeScore: integer("home_score"),
   awayScore: integer("away_score"),
+  // 90-minute score — what predictions are scored against
+  homeScoreRegular: integer("home_score_regular"),
+  awayScoreRegular: integer("away_score_regular"),
   wentToExtraTime: boolean("went_to_extra_time").default(false).notNull(),
   homePens: integer("home_pens"),
   awayPens: integer("away_pens"),
