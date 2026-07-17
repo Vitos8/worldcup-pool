@@ -105,13 +105,17 @@ export function MatchesPage({
     () => new Set(collapsible.slice(0, -1))
   )
 
+  // Hidden rounds must stay a contiguous leading run — a gap (e.g. R16 shown
+  // while QF hidden) would scramble the bracket's positional pairing. So
+  // showing a round also reveals every hidden round after it, and hiding a
+  // round also hides everything before it.
   const toggleStage = (stage: BracketStage) => {
-    setHiddenStages((current) => {
-      const next = new Set(current)
-      if (next.has(stage)) next.delete(stage)
-      else next.add(stage)
-      return next
-    })
+    const index = collapsible.indexOf(stage)
+    setHiddenStages((current) =>
+      current.has(stage)
+        ? new Set(collapsible.slice(0, index))
+        : new Set(collapsible.slice(0, index + 1))
+    )
   }
 
   const rounds: BracketRound[] = STAGE_ORDER.filter((stage) => !hiddenStages.has(stage)).map(
@@ -223,15 +227,15 @@ export function MatchesPage({
               })}
             </div>
           )}
-          <Bracket rounds={rounds} renderNode={renderNode} />
-          {thirdPlace && (
-            <div className="mt-10">
-              <div className="mb-3 text-center font-display text-sm font-bold tracking-[0.14em] text-white uppercase" style={{ width: 272 }}>
-                {STAGE_TITLES.third}
-              </div>
-              <div style={{ width: 272, height: 150 }}>{renderNode({ id: thirdPlace.id })}</div>
-            </div>
-          )}
+          <Bracket
+            rounds={rounds}
+            renderNode={renderNode}
+            finalFooter={
+              thirdPlace
+                ? { title: STAGE_TITLES.third, node: renderNode({ id: thirdPlace.id }) }
+                : undefined
+            }
+          />
         </div>
       </div>
       {!readOnly && onSavePrediction && predicting && isPredictable(predicting) && (

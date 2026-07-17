@@ -26,16 +26,27 @@ function centreY(r: number, i: number): number {
 export function Bracket({
   rounds,
   renderNode,
+  finalFooter,
 }: {
   rounds: BracketRound[]
   renderNode: (match: BracketMatch, round: number, index: number) => React.ReactNode
+  /** Standalone card docked below the last round's node (e.g. third place). */
+  finalFooter?: { title: string; node: React.ReactNode }
 }) {
   const roundOne = rounds[0]?.matches.length ?? 0
   const width = colX(rounds.length - 1) + NODE_W
   const height = roundOne * STEP - ROW_GAP
 
+  const lastRound = rounds.length - 1
+  const footerTitleTop = 34 + centreY(lastRound, 0) + NODE_H / 2 + 46
+  const footerNodeBottom = footerTitleTop + 26 + NODE_H
+  const containerHeight = Math.max(
+    height + 34,
+    finalFooter ? footerNodeBottom + 12 : 0
+  )
+
   return (
-    <div className="relative" style={{ width, height: height + 34 }}>
+    <div className="relative" style={{ width, height: containerHeight }}>
       {/* round labels */}
       {rounds.map((round, r) => (
         <div
@@ -75,6 +86,24 @@ export function Bracket({
           })
         )}
       </svg>
+
+      {/* standalone footer card in the last column (third place) */}
+      {finalFooter && (
+        <>
+          <div
+            className="absolute text-center font-display text-sm font-bold tracking-[0.14em] text-white uppercase"
+            style={{ left: colX(lastRound), width: NODE_W, top: footerTitleTop }}
+          >
+            {finalFooter.title}
+          </div>
+          <div
+            className="absolute"
+            style={{ left: colX(lastRound), top: footerTitleTop + 26, width: NODE_W, height: NODE_H }}
+          >
+            {finalFooter.node}
+          </div>
+        </>
+      )}
 
       {/* nodes */}
       {rounds.map((round, r) =>
