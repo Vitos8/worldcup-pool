@@ -31,12 +31,17 @@ export async function getLeaderboard(currentUserId: string): Promise<Standing[]>
         image: user.image,
         played: sql<number>`count(${prediction.id})`.mapWith(Number),
         points: sql<number>`coalesce(sum(${prediction.points}), 0)`.mapWith(Number),
+        // stored points carry the stage multiplier (×2 sf, ×2.5 final) —
+        // divide it back out so PPG reflects base-matrix quality only;
+        // mirrors stagePointsMultiplier() in @workspace/shared
+        basePoints: sql<number>`coalesce(sum(${prediction.points} / case ${match.stage} when 'sf' then 2.0 when 'final' then 2.5 else 1.0 end), 0)`.mapWith(Number),
       })
       .from(user)
       .leftJoin(
         prediction,
         and(eq(prediction.userId, user.id), isNotNull(prediction.settledAt))
       )
+      .leftJoin(match, eq(prediction.matchId, match.id))
       .groupBy(user.id),
     db.query.match.findFirst({ where: eq(match.stage, "final") }),
     db.select({ userId: championPick.userId, teamId: championPick.teamId }).from(championPick),
@@ -50,6 +55,9 @@ export async function getLeaderboard(currentUserId: string): Promise<Standing[]>
   return rows
     .map((row) => ({
       ...row,
+      // per-match average — fairness metric for uneven "played" counts;
+      // excludes the champion bonus (not a match) and stage multipliers
+      avg: row.played > 0 ? Math.round((row.basePoints / row.played) * 10) / 10 : 0,
       points:
         row.points +
         (cupWinnerTeamId && pickByUserId.get(row.userId) === cupWinnerTeamId ? POINTS_CHAMPION : 0),
@@ -65,6 +73,7 @@ export async function getLeaderboard(currentUserId: string): Promise<Standing[]>
         tone: deriveTone(displayName),
         played: row.played,
         points: row.points,
+        avg: row.avg,
         isYou: row.userId === currentUserId,
         avatarUrl: row.image,
       }

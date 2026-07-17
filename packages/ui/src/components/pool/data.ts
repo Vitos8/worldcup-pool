@@ -37,7 +37,7 @@ export function deriveTone(code: string): TeamTone {
   return TONES[Math.abs(hash) % TONES.length]!
 }
 
-export type BracketStage = "r16" | "qf" | "sf" | "final"
+export type BracketStage = "r16" | "qf" | "sf" | "third" | "final"
 
 /** The signed-in user's prediction for a fixture. */
 export interface MyPick {

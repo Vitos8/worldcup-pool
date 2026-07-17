@@ -15,7 +15,10 @@ function toUiTeam(row: TeamRow): UiTeam | null {
   return { id: row.id, code, name: row.shortName ?? row.name, tone: deriveTone(code), crestUrl: row.crestUrl }
 }
 
-const STAGE_ORDER = ["r16", "qf", "sf", "final"] as const
+// "third" sits last on purpose: it shares feeders with the final (the SF
+// losers), so it must never participate in the parent→child permutation walk
+// — the length mismatch (1 parent vs 1 "child") makes the walk skip it.
+const STAGE_ORDER = ["r16", "qf", "sf", "final", "third"] as const
 
 interface OrderableMatch {
   stage: string

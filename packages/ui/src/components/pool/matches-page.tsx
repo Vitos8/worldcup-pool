@@ -8,11 +8,14 @@ import { TeamBadge } from "./team-badge"
 import { PredictDialog, type SavePrediction } from "./predict-dialog"
 import type { BracketFixture, BracketStage, Match, Team } from "./data"
 
+// Bracket tree columns — the third-place match isn't part of the tree
+// (it shares feeders with the final) and renders as its own section below.
 const STAGE_ORDER: BracketStage[] = ["r16", "qf", "sf", "final"]
 const STAGE_TITLES: Record<BracketStage, string> = {
   r16: "Round of 16",
   qf: "Quarter-finals",
   sf: "Semi-finals",
+  third: "Third place",
   final: "Final",
 }
 
@@ -84,6 +87,7 @@ export function MatchesPage({
 
   const byId = new Map(fixtures.map((f) => [f.id, f]))
   const predicting = predictingId ? byId.get(predictingId) : undefined
+  const thirdPlace = fixtures.find((f) => f.stage === "third")
 
   // A leading run of fully-played rounds is old news — collapse it by default
   // so the bracket opens focused on the live action, with toggles to bring
@@ -220,6 +224,14 @@ export function MatchesPage({
             </div>
           )}
           <Bracket rounds={rounds} renderNode={renderNode} />
+          {thirdPlace && (
+            <div className="mt-10">
+              <div className="mb-3 text-center font-display text-sm font-bold tracking-[0.14em] text-white uppercase" style={{ width: 272 }}>
+                {STAGE_TITLES.third}
+              </div>
+              <div style={{ width: 272, height: 150 }}>{renderNode({ id: thirdPlace.id })}</div>
+            </div>
+          )}
         </div>
       </div>
       {!readOnly && onSavePrediction && predicting && isPredictable(predicting) && (

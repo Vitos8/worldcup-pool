@@ -12,12 +12,15 @@ export const POINTS_ADVANCE_CALL = 1
 export const POINTS_CHAMPION = 5
 
 /**
- * Semi-finals and the final pay double: the whole matrix result is
- * multiplied (exact = 10, win = 6, advance call = 2, ...). The champion
- * call is not multiplied.
+ * Late-stage multipliers on the whole matrix result: semi-finals ×2
+ * (exact = 10, win = 6, ...), the final ×2.5 (exact = 12.5, win = 7.5, ...).
+ * Third place and earlier rounds pay ×1; the champion call is never
+ * multiplied.
  */
 export function stagePointsMultiplier(stage: string): number {
-  return stage === "sf" || stage === "final" ? 2 : 1
+  if (stage === "final") return 2.5
+  if (stage === "sf") return 2
+  return 1
 }
 
 export interface KnockoutScoringInput {

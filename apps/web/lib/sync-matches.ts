@@ -13,7 +13,7 @@ const SEASON = "2026"
 // bracket actually displays; Round of 16 already carries its real teams
 // directly from the API, so group stage / Round of 32 data serves no purpose
 // here and would just be 88 unused rows.
-const TRACKED_STAGES: MatchStage[] = ["r16", "qf", "sf", "final"]
+const TRACKED_STAGES: MatchStage[] = ["r16", "qf", "sf", "third", "final"]
 
 // Don't hit football-data.org's rate-limited API on every page view — only
 // refetch when local data could plausibly be out of date. Live matches need

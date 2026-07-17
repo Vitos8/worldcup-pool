@@ -42,8 +42,15 @@ are awarded after each match. World Cup first, extensible to Champions League.
   - draw predicted: exact vs the 90' score = 5, otherwise 3;
     +1 shootout-call bonus when the named advancer went through
   - win predicted: 1 point if the backed team advanced (via ET or pens), else 0
-- Stage multiplier: semi-finals and the final pay double — the whole matrix
-  result ×2 (exact = 10, win = 6, advance call = 2, draw+call = 8/12).
+- Stage multipliers on the whole matrix result: semi-finals ×2 (exact = 10,
+  win = 6, ...), the final ×2.5 (exact = 12.5, win = 7.5, ...) — hence
+  fractional points (prediction.points is a real column). Third place and
+  earlier rounds pay ×1.
+- Third-place match is tracked and predictable like any fixture; it renders
+  as its own section under the bracket (it shares feeders with the final,
+  so it's not part of the tree).
+- Leaderboard shows an Avg column (match points / played, champion bonus
+  excluded) as a fairness signal for uneven played counts.
 - Champion call = +5: awarded once, after the final, to everyone whose
   champion pick won the cup (not multiplied).
 

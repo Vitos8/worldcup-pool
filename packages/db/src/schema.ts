@@ -4,6 +4,7 @@ import {
   pgEnum,
   text,
   integer,
+  real,
   boolean,
   timestamp,
   uniqueIndex,
@@ -154,7 +155,8 @@ export const prediction = pgTable("prediction", {
   // required (by the app layer) when the predicted score is a draw:
   // who advances on penalties — worth a +1 bonus when correct
   penaltyWinnerTeamId: text("penalty_winner_team_id").references(() => team.id),
-  points: integer("points"),                   // null until the match is settled
+  // null until the match is settled; real because the final pays ×2.5
+  points: real("points"),
   settledAt: timestamp("settled_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
