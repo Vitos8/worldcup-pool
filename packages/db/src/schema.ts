@@ -111,6 +111,27 @@ export const team = pgTable("team", {
   uniqueIndex("team_competition_external_idx").on(t.competitionId, t.externalId),
 ]);
 
+// Squad members of the teams playing the final / third-place match — the
+// pool of "who scores in this match" picks. The +3 scorer bonus is settled
+// by diffing cumulative tournament goals around the team's last match (the
+// free API tier has no per-match goalscorer data; each of these teams plays
+// exactly one match after the semis, so the diff is unambiguous).
+export const player = pgTable("player", {
+  id: id(),
+  teamId: text("team_id").notNull().references(() => team.id, { onDelete: "cascade" }),
+  externalId: text("external_id").notNull(),   // football-data.org person id
+  name: text("name").notNull(),
+  position: text("position"),                  // "Goalkeeper" | "Defence" | "Midfield" | "Offence"
+  // Cumulative tournament goals snapshotted before kickoff / after full time
+  // of this team's last match; scored = post > pre. Null until synced.
+  preMatchGoals: integer("pre_match_goals"),
+  postMatchGoals: integer("post_match_goals"),
+  goalsSyncedAt: timestamp("goals_synced_at", { withTimezone: true }),
+}, (t) => [
+  index("player_team_idx").on(t.teamId),
+  uniqueIndex("player_team_external_idx").on(t.teamId, t.externalId),
+]);
+
 export const match = pgTable("match", {
   id: id(),
   competitionId: text("competition_id").notNull().references(() => competition.id, { onDelete: "cascade" }),
@@ -155,6 +176,11 @@ export const prediction = pgTable("prediction", {
   // required (by the app layer) when the predicted score is a draw:
   // who advances on penalties — worth a +1 bonus when correct
   penaltyWinnerTeamId: text("penalty_winner_team_id").references(() => team.id),
+  // final & third-place match only (required there by the app layer): one
+  // player per team who the user says will score — +3 each when right, flat,
+  // never multiplied
+  homeScorerPlayerId: text("home_scorer_player_id").references(() => player.id),
+  awayScorerPlayerId: text("away_scorer_player_id").references(() => player.id),
   // null until the match is settled; real because the final pays ×2.5
   points: real("points"),
   settledAt: timestamp("settled_at", { withTimezone: true }),
@@ -200,9 +226,15 @@ export const matchRelations = relations(match, ({ one, many }) => ({
   predictions: many(prediction),
 }));
 
+export const playerRelations = relations(player, ({ one }) => ({
+  team: one(team, { fields: [player.teamId], references: [team.id] }),
+}));
+
 export const predictionRelations = relations(prediction, ({ one }) => ({
   user: one(user, { fields: [prediction.userId], references: [user.id] }),
   match: one(match, { fields: [prediction.matchId], references: [match.id] }),
+  homeScorer: one(player, { fields: [prediction.homeScorerPlayerId], references: [player.id], relationName: "homeScorer" }),
+  awayScorer: one(player, { fields: [prediction.awayScorerPlayerId], references: [player.id], relationName: "awayScorer" }),
 }));
 
 export const championPickRelations = relations(championPick, ({ one }) => ({

@@ -18,6 +18,7 @@ export interface Match {
   awayScore?: string
   winner?: "home" | "away"
   pick?: string // "0:1"
+  pickScorers?: string // "Lamine Yamal · Julián Álvarez" — final/third scorer calls
   points?: number // 5
 }
 
@@ -39,11 +40,20 @@ export function deriveTone(code: string): TeamTone {
 
 export type BracketStage = "r16" | "qf" | "sf" | "third" | "final"
 
+/** Squad member offered in the scorer picker (final & third place). */
+export interface PlayerOption {
+  id: string // DB player id
+  name: string // "Lamine Yamal"
+  position: string | null // "Goalkeeper" | "Defence" | "Midfield" | "Offence"
+}
+
 /** The signed-in user's prediction for a fixture. */
 export interface MyPick {
   home: number
   away: number
   penaltyWinnerTeamId: string | null // set when the pick is a draw
+  homeScorerPlayerId: string | null // final & third place: who scores for each team
+  awayScorerPlayerId: string | null
   points: number | null // null until the match is settled
 }
 
@@ -62,4 +72,6 @@ export interface BracketFixture {
   awayPens: number | null
   winner: "home" | "away" | null
   myPick: MyPick | null
+  /** Final & third place: both squads for the scorer picker (null until synced). */
+  squads?: { home: PlayerOption[]; away: PlayerOption[] } | null
 }

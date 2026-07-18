@@ -21,6 +21,8 @@ export function MatchesClient({
       home: prediction.home,
       away: prediction.away,
       penaltyWinnerTeamId: prediction.penaltyWinnerTeamId ?? null,
+      homeScorerPlayerId: prediction.homeScorerPlayerId ?? null,
+      awayScorerPlayerId: prediction.awayScorerPlayerId ?? null,
     })
     if (!result.error) router.refresh()
     return result

@@ -35,6 +35,12 @@ const RULES: Rule[] = [
     doubledPoints: 2,
     finalPoints: 2.5,
   },
+  {
+    title: "Scorer call",
+    description:
+      "Final & third place: name one player per team who scores in the match — +3 for each correct call, on top of your score points",
+    points: 3,
+  },
   { title: "Missed prediction", description: "No pick submitted before kickoff", points: 0 },
 ]
 

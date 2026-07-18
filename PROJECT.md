@@ -53,6 +53,16 @@ are awarded after each match. World Cup first, extensible to Champions League.
   excluded) as a fairness signal for uneven played counts.
 - Champion call = +5: awarded once, after the final, to everyone whose
   champion pick won the cup (not multiplied).
+- Scorer call (final & third-place match): the prediction modal for these
+  two matches also requires one player pick per team — "who scores in this
+  match". +3 per correct scorer, flat, never multiplied, folded into that
+  prediction's points. Settled by diffing cumulative tournament goals from
+  the free-tier scorers endpoint before kickoff vs after full time (the API
+  has no per-match goalscorer data on the free tier), so own goals don't
+  count and shootout kicks don't count; extra-time goals do. Squads come
+  from GET /teams/{id} once the fixture's teams are known; the diff is
+  unambiguous because each of these four teams plays exactly one match
+  after the semi-finals.
 
 Display shows the final played score (after ET, before pens) with an
 "FT (aet)" / "FT (pens)" badge; scoring always compares against the

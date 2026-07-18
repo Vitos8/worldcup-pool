@@ -1,6 +1,11 @@
-import { asc, eq, and } from "drizzle-orm"
-import { db, competition, match, prediction } from "@workspace/db"
-import { deriveTone, type BracketFixture, type Team as UiTeam } from "@workspace/ui/components/pool/data"
+import { asc, eq, and, inArray } from "drizzle-orm"
+import { db, competition, match, player, prediction } from "@workspace/db"
+import {
+  deriveTone,
+  type BracketFixture,
+  type PlayerOption,
+  type Team as UiTeam,
+} from "@workspace/ui/components/pool/data"
 import { ensureFreshMatches } from "./sync-matches"
 import { settleFinishedPredictions } from "./settle-predictions"
 
@@ -13,6 +18,40 @@ function toUiTeam(row: TeamRow): UiTeam | null {
   if (!row) return null
   const code = row.tla ?? row.name.slice(0, 3).toUpperCase()
   return { id: row.id, code, name: row.shortName ?? row.name, tone: deriveTone(code), crestUrl: row.crestUrl }
+}
+
+// Matches with a "who scores" pick: the final and the third-place match.
+const SCORER_STAGES = new Set(["final", "third"])
+
+// Striker-to-keeper order for the scorer picker — likely scorers on top.
+const POSITION_ORDER = ["Offence", "Midfield", "Defence", "Goalkeeper"]
+
+/** Squad options for the scorer pickers, keyed by team id. */
+async function getSquadsByTeam(teamIds: string[]): Promise<Map<string, PlayerOption[]>> {
+  if (teamIds.length === 0) return new Map()
+
+  const players = await db
+    .select({ id: player.id, teamId: player.teamId, name: player.name, position: player.position })
+    .from(player)
+    .where(inArray(player.teamId, teamIds))
+
+  // Unknown positions sort last, not first (indexOf would put -1 on top).
+  const positionRank = (position: string | null) => {
+    const index = POSITION_ORDER.indexOf(position ?? "")
+    return index === -1 ? POSITION_ORDER.length : index
+  }
+
+  const byTeam = new Map<string, PlayerOption[]>()
+  for (const { id, teamId, name, position } of players) {
+    if (!byTeam.has(teamId)) byTeam.set(teamId, [])
+    byTeam.get(teamId)!.push({ id, name, position })
+  }
+  for (const options of byTeam.values()) {
+    options.sort(
+      (a, b) => positionRank(a.position) - positionRank(b.position) || a.name.localeCompare(b.name)
+    )
+  }
+  return byTeam
 }
 
 // "third" sits last on purpose: it shares feeders with the final (the SF
@@ -98,6 +137,12 @@ export async function getBracketFixtures(userId: string): Promise<BracketFixture
   ])
   const pickByMatchId = new Map(myPredictions.map((p) => [p.matchId, p]))
 
+  const scorerTeamIds = rows
+    .filter((row) => SCORER_STAGES.has(row.stage))
+    .flatMap((row) => [row.homeTeamId, row.awayTeamId])
+    .filter((id): id is string => id !== null)
+  const squadsByTeam = await getSquadsByTeam(scorerTeamIds)
+
   return toBracketOrder(rows).map((row) => ({
     id: row.id,
     stage: row.stage as BracketFixture["stage"],
@@ -125,9 +170,17 @@ export async function getBracketFixtures(userId: string): Promise<BracketFixture
             home: pick.homeScore,
             away: pick.awayScore,
             penaltyWinnerTeamId: pick.penaltyWinnerTeamId,
+            homeScorerPlayerId: pick.homeScorerPlayerId,
+            awayScorerPlayerId: pick.awayScorerPlayerId,
             points: pick.points,
           }
         : null
+    })(),
+    squads: (() => {
+      if (!SCORER_STAGES.has(row.stage) || !row.homeTeamId || !row.awayTeamId) return undefined
+      const home = squadsByTeam.get(row.homeTeamId) ?? []
+      const away = squadsByTeam.get(row.awayTeamId) ?? []
+      return home.length > 0 && away.length > 0 ? { home, away } : null
     })(),
   }))
 }

@@ -10,6 +10,21 @@ export const POINTS_PENALTY_BONUS = 1
 export const POINTS_ADVANCE_CALL = 1
 /** Awarded once, after the final, when a user's champion pick wins the cup. */
 export const POINTS_CHAMPION = 5
+/**
+ * Final & third-place match only: the user names one player per team who
+ * will score in the match — +3 for each correct call, flat, never multiplied.
+ */
+export const POINTS_SCORER_CALL = 3
+
+/**
+ * Whether a picked player scored in their team's last match, derived from
+ * cumulative tournament goals snapshotted before kickoff and after full time
+ * (the data source has no per-match goalscorers). Unknown (null) snapshots
+ * never award.
+ */
+export function scorerPickHit(preMatchGoals: number | null, postMatchGoals: number | null): boolean {
+  return preMatchGoals !== null && postMatchGoals !== null && postMatchGoals > preMatchGoals
+}
 
 /**
  * Late-stage multipliers on the whole matrix result: semi-finals ×2

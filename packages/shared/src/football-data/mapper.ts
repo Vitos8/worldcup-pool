@@ -1,4 +1,4 @@
-import type { RawMatch, RawScore, RawTeam } from "./schema"
+import type { RawMatch, RawScore, RawSquadMember, RawScorersResponse, RawTeam } from "./schema"
 
 export type MatchStage = "group" | "r32" | "r16" | "qf" | "sf" | "third" | "final"
 export type MatchStatus = "scheduled" | "live" | "finished"
@@ -98,6 +98,21 @@ function mapScore(score: RawScore) {
     winnerSide:
       score.winner === "HOME_TEAM" ? ("home" as const) : score.winner === "AWAY_TEAM" ? ("away" as const) : null,
   }
+}
+
+export interface MappedPlayer {
+  externalId: string
+  name: string
+  position: string | null
+}
+
+export function mapSquadMember(raw: RawSquadMember): MappedPlayer {
+  return { externalId: String(raw.id), name: raw.name, position: raw.position }
+}
+
+/** Cumulative tournament goals keyed by player external id. Players absent from the scorers list have 0 goals. */
+export function mapScorerTotals(raw: RawScorersResponse): Map<string, number> {
+  return new Map(raw.scorers.map((s) => [String(s.player.id), s.goals]))
 }
 
 export function mapMatch(raw: RawMatch): MappedMatch {

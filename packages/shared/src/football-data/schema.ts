@@ -82,7 +82,34 @@ export function parseMatchesResponse(raw: unknown): { matches: RawMatch[]; skipp
   return { matches, skipped }
 }
 
+// GET /teams/{id} — squad members for the finalist scorer picker.
+export const rawSquadMemberSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  position: z.string().nullable(),
+})
+
+export const rawTeamDetailSchema = z.object({
+  id: z.number(),
+  squad: z.array(rawSquadMemberSchema),
+})
+
+// GET /competitions/{code}/scorers — cumulative tournament goals per player.
+// The free tier has no per-match goalscorers, so "did X score in the final"
+// is answered by diffing these totals before/after the final.
+export const rawScorersResponseSchema = z.object({
+  scorers: z.array(
+    z.object({
+      player: z.object({ id: z.number() }),
+      goals: z.number(),
+    })
+  ),
+})
+
 export type RawTeam = z.infer<typeof rawTeamSchema>
 export type RawScore = z.infer<typeof rawScoreSchema>
 export type RawMatch = z.infer<typeof rawMatchSchema>
 export type RawMatchesResponse = z.infer<typeof rawMatchesResponseSchema>
+export type RawSquadMember = z.infer<typeof rawSquadMemberSchema>
+export type RawTeamDetail = z.infer<typeof rawTeamDetailSchema>
+export type RawScorersResponse = z.infer<typeof rawScorersResponseSchema>

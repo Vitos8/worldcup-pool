@@ -31,6 +31,17 @@ function formatKickoffTime(iso: string) {
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
 }
 
+/** "Lamine Yamal · Julián Álvarez" — the scorer calls, resolved via the fixture's squads. */
+function pickScorersText(fixture: BracketFixture): string | undefined {
+  const pick = fixture.myPick
+  if (!pick || !fixture.squads) return undefined
+  const players = [...fixture.squads.home, ...fixture.squads.away]
+  const names = [pick.homeScorerPlayerId, pick.awayScorerPlayerId]
+    .map((id) => players.find((p) => p.id === id)?.name)
+    .filter((name): name is string => Boolean(name))
+  return names.length > 0 ? names.join(" · ") : undefined
+}
+
 /** "1:1 · SUI on pens" when the pick includes a shootout call. */
 function pickLabelText(fixture: BracketFixture): string | undefined {
   const pick = fixture.myPick
@@ -62,6 +73,7 @@ function toDisplayMatch(fixture: BracketFixture): Match {
     awayScore: withPens(fixture.awayScore, fixture.awayPens),
     winner: fixture.winner ?? undefined,
     pick: pickLabelText(fixture),
+    pickScorers: pickScorersText(fixture),
     points: fixture.myPick?.points ?? undefined,
   }
 }
@@ -180,9 +192,16 @@ export function MatchesPage({
           ))}
           <div className="mt-2 border-t border-[#eef1ee] pt-2  text-xs font-semibold">
             {fixture.myPick ? (
-              <span className="text-[#2a6fdb]">
-                Your pick: {pickLabelText(fixture)} — tap to edit
-              </span>
+              <>
+                <span className="text-[#2a6fdb]">
+                  Your pick: {pickLabelText(fixture)} — tap to edit
+                </span>
+                {pickScorersText(fixture) && (
+                  <span className="mt-0.5 block truncate font-medium text-faded">
+                    ⚽ {pickScorersText(fixture)}
+                  </span>
+                )}
+              </>
             ) : (
               <span className="text-brand-green">Tap to predict</span>
             )}

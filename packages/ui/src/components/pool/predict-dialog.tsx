@@ -18,13 +18,16 @@ import {
 } from "@workspace/ui/components/select"
 import { cn } from "@workspace/ui/lib/utils"
 import { TeamBadge } from "./team-badge"
-import type { BracketFixture, Team } from "./data"
+import type { BracketFixture, PlayerOption, Team } from "./data"
 
 export interface Prediction {
   home: number
   away: number
   /** Required when home === away: who advances on penalties (+1 if correct). */
   penaltyWinnerTeamId?: string | null
+  /** Required for the final & third place: one scorer per team (+3 each if correct). */
+  homeScorerPlayerId?: string | null
+  awayScorerPlayerId?: string | null
 }
 
 export type SavePrediction = (matchId: string, prediction: Prediction) => Promise<{ error?: string }>
@@ -69,6 +72,38 @@ function Stepper({
   )
 }
 
+function ScorerSelect({
+  team,
+  players,
+  value,
+  onChange,
+}: {
+  team: Team
+  players: PlayerOption[]
+  value: string | undefined
+  onChange: (playerId: string) => void
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="w-full bg-white">
+        <SelectValue placeholder={`${team.name} scorer`} />
+      </SelectTrigger>
+      <SelectContent>
+        {players.map((playerOption) => (
+          <SelectItem key={playerOption.id} value={playerOption.id}>
+            <span className="flex items-center gap-2.5">
+              <span className="font-semibold text-ink">{playerOption.name}</span>
+              {playerOption.position && (
+                <span className="text-xs text-faded">{playerOption.position}</span>
+              )}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
 export function PredictDialog({
   fixture,
   dateLabel,
@@ -88,11 +123,20 @@ export function PredictDialog({
   const [penaltyWinnerId, setPenaltyWinnerId] = useState<string | undefined>(
     fixture.myPick?.penaltyWinnerTeamId ?? undefined
   )
+  const [homeScorerId, setHomeScorerId] = useState<string | undefined>(
+    fixture.myPick?.homeScorerPlayerId ?? undefined
+  )
+  const [awayScorerId, setAwayScorerId] = useState<string | undefined>(
+    fixture.myPick?.awayScorerPlayerId ?? undefined
+  )
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const isDraw = prediction.home === prediction.away
   const canPickPenaltyWinner = Boolean(fixture.home.id && fixture.away.id)
+  const needsScorers = fixture.stage === "final" || fixture.stage === "third"
+  const squads = fixture.squads ?? null
+  const missingScorerPick = needsScorers && (!homeScorerId || !awayScorerId)
 
   async function handleSave() {
     setIsPending(true)
@@ -100,6 +144,8 @@ export function PredictDialog({
     const result = await onSave(fixture.id, {
       ...prediction,
       penaltyWinnerTeamId: isDraw ? (penaltyWinnerId ?? null) : null,
+      homeScorerPlayerId: needsScorers ? (homeScorerId ?? null) : null,
+      awayScorerPlayerId: needsScorers ? (awayScorerId ?? null) : null,
     })
     if (result.error) {
       setError(result.error)
@@ -155,10 +201,40 @@ export function PredictDialog({
             </Select>
           </div>
         )}
+        {needsScorers && (
+          <div className="flex flex-col gap-2 rounded-xl bg-[#f1f8f3] p-3">
+            <span className="text-sm font-semibold text-ink">
+              Who scores in this match? One pick per team.
+            </span>
+            <span className="text-xs text-faded">Each correct scorer earns +3 bonus points.</span>
+            {squads ? (
+              <>
+                <ScorerSelect
+                  team={fixture.home}
+                  players={squads.home}
+                  value={homeScorerId}
+                  onChange={setHomeScorerId}
+                />
+                <ScorerSelect
+                  team={fixture.away}
+                  players={squads.away}
+                  value={awayScorerId}
+                  onChange={setAwayScorerId}
+                />
+              </>
+            ) : (
+              <span className="text-xs text-faded">
+                Squad lists are still syncing — reopen this dialog in a minute.
+              </span>
+            )}
+          </div>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button
           onClick={handleSave}
-          disabled={isPending || (isDraw && canPickPenaltyWinner && !penaltyWinnerId)}
+          disabled={
+            isPending || (isDraw && canPickPenaltyWinner && !penaltyWinnerId) || missingScorerPick
+          }
           className={cn("bg-brand-green hover:bg-brand-green/90 w-full text-[15px] font-semibold text-white")}
         >
           {isPending ? "Saving…" : "Save prediction"}

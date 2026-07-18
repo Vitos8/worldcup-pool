@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm"
 import { db, competition, team, match } from "@workspace/db"
 import { parseMatchesResponse, mapMatch, type MappedTeam, type MatchStage } from "@workspace/shared"
 import { footballDataFetch } from "./football-data-client"
+import { syncScorerData } from "./sync-scorers"
 
 const COMPETITION_CODE = "WC"
 const SEASON = "2026"
@@ -160,6 +161,10 @@ export async function syncIfStale() {
   } catch (error) {
     console.error("football-data.org sync failed — serving existing data", error)
   }
+  // Final + third-place squads and scorer-goal snapshots for the "+3 scorer
+  // call" bonus. Internally gated the same way (cheap DB checks, guarded API
+  // calls).
+  await syncScorerData()
 }
 
 async function syncIfStaleUnsafe() {

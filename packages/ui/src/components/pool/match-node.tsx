@@ -51,17 +51,24 @@ export function MatchNode({
           <span className="text-xs font-medium text-faded">{emptyPickLabel}</span>
         </div>
       ) : (
-        <div className="mt-auto flex items-center justify-between border-t border-[#eef1ee] pt-2">
-          <span className="text-xs font-semibold text-[#2a6fdb]">{pickLabel}: {match.pick}</span>
-          {match.points !== undefined && (
-            <Badge
-              className={cn(
-                "rounded-full border-0 px-[9px] py-0.5 font-display text-xs font-bold",
-                match.points ? "bg-[#e3f2e8] text-brand-green" : "bg-[#eef1ee] text-faded"
-              )}
-            >
-              +{match.points}
-            </Badge>
+        <div className="mt-auto flex flex-col gap-0.5 border-t border-[#eef1ee] pt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#2a6fdb]">{pickLabel}: {match.pick}</span>
+            {match.points !== undefined && (
+              <Badge
+                className={cn(
+                  "rounded-full border-0 px-[9px] py-0.5 font-display text-xs font-bold",
+                  match.points ? "bg-[#e3f2e8] text-brand-green" : "bg-[#eef1ee] text-faded"
+                )}
+              >
+                +{match.points}
+              </Badge>
+            )}
+          </div>
+          {match.pickScorers && (
+            <span className="truncate text-xs font-medium text-faded">
+              ⚽ {match.pickScorers}
+            </span>
           )}
         </div>
       )}

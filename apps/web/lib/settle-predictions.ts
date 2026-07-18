@@ -1,6 +1,15 @@
 import { and, eq, isNotNull } from "drizzle-orm"
-import { db, match, prediction } from "@workspace/db"
-import { scoreKnockoutPrediction, stagePointsMultiplier } from "@workspace/shared"
+import { alias } from "drizzle-orm/pg-core"
+import { db, match, prediction, player } from "@workspace/db"
+import {
+  scoreKnockoutPrediction,
+  stagePointsMultiplier,
+  scorerPickHit,
+  POINTS_SCORER_CALL,
+} from "@workspace/shared"
+
+const homeScorer = alias(player, "home_scorer")
+const awayScorer = alias(player, "away_scorer")
 
 /**
  * Awards points for every prediction whose match has finished. Recomputes
@@ -23,9 +32,15 @@ export async function settleFinishedPredictions() {
       homeTeamId: match.homeTeamId,
       awayTeamId: match.awayTeamId,
       winnerTeamId: match.winnerTeamId,
+      homeScorerPre: homeScorer.preMatchGoals,
+      homeScorerPost: homeScorer.postMatchGoals,
+      awayScorerPre: awayScorer.preMatchGoals,
+      awayScorerPost: awayScorer.postMatchGoals,
     })
     .from(prediction)
     .innerJoin(match, eq(prediction.matchId, match.id))
+    .leftJoin(homeScorer, eq(prediction.homeScorerPlayerId, homeScorer.id))
+    .leftJoin(awayScorer, eq(prediction.awayScorerPlayerId, awayScorer.id))
     .where(
       and(
         eq(match.status, "finished"),
@@ -36,6 +51,12 @@ export async function settleFinishedPredictions() {
 
   const settledAt = new Date()
   for (const row of rows) {
+    // +3 per correct scorer call (final & third place) — flat, on top of the
+    // multiplied matrix.
+    const scorerBonus =
+      (scorerPickHit(row.homeScorerPre, row.homeScorerPost) ? POINTS_SCORER_CALL : 0) +
+      (scorerPickHit(row.awayScorerPre, row.awayScorerPost) ? POINTS_SCORER_CALL : 0)
+
     const points =
       scoreKnockoutPrediction({
         regularTime: { home: row.regularHome!, away: row.regularAway! },
@@ -44,7 +65,9 @@ export async function settleFinishedPredictions() {
         awayTeamId: row.awayTeamId,
         advancingTeamId: row.winnerTeamId,
         predictedAdvancingTeamId: row.predictedPenaltyWinnerTeamId,
-      }) * stagePointsMultiplier(row.stage)
+      }) *
+        stagePointsMultiplier(row.stage) +
+      scorerBonus
 
     if (row.currentPoints !== points || row.settledAt === null) {
       await db
